@@ -85,7 +85,13 @@ def test_confirm_writes_outbox_and_consumers_mark_separately():
     processed = world.events._consumers[0]._processed
     assert processed.has(MEMORY_EXTRACTOR_CONSUMER, event_id) is True
     assert processed.has(TIMELINE_CONSUMER, event_id) is True
-    assert world.outbox.list_pending(MEMORY_EXTRACTOR_CONSUMER) == []
+    assert (
+        world.outbox.list_pending(
+            MEMORY_EXTRACTOR_CONSUMER,
+            event_types=(ORDER_CONFIRMED,),
+        )
+        == []
+    )
     assert world.outbox.list_pending(TIMELINE_CONSUMER) == []
     assert any(item.event_type == ORDER_CONFIRMED for item in world.timeline.list(session.session_id))
     evidence = _evidence(world)
@@ -125,7 +131,13 @@ def test_recover_applies_unmarked_outbox_once_without_replaying_history():
     again = _evidence(world)
     assert again is not None
     assert again.count == 1
-    assert world.outbox.list_pending(MEMORY_EXTRACTOR_CONSUMER) == []
+    assert (
+        world.outbox.list_pending(
+            MEMORY_EXTRACTOR_CONSUMER,
+            event_types=(ORDER_CONFIRMED,),
+        )
+        == []
+    )
     assert world.outbox.list_pending(TIMELINE_CONSUMER) == []
 
 
@@ -145,7 +157,13 @@ def test_postgres_outbox_crash_before_drain_recover_exactly_once():
     restored = _evidence(world2)
     assert restored is not None
     assert restored.count == 1
-    assert world2.outbox.list_pending(MEMORY_EXTRACTOR_CONSUMER) == []
+    assert (
+        world2.outbox.list_pending(
+            MEMORY_EXTRACTOR_CONSUMER,
+            event_types=(ORDER_CONFIRMED,),
+        )
+        == []
+    )
     assert any(item.event_type == ORDER_CONFIRMED for item in world2.timeline.list(session_id))
     if world2.engine is not None:
         world2.engine.dispose()

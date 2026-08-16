@@ -1,0 +1,19 @@
+---
+description: Session 必须可扩展到销售以外的采购、付款、库存、商品维护
+globs: app/session/**/*.py
+alwaysApply: false
+---
+
+# Session 扩展边界
+
+当前实现是销售开单会话，但工作记忆不要写成「只能开销售单」。
+
+- `working_state` 只放结构化快照（客户、行、focus_line_id、deferred issues），不是聊天全文。
+- 销售图只发 outbox 事件；禁止在 session 状态机里扣库存、收款、生成采购单。
+- 预留会话类型/上下文（如 `sales_order` / 未来 `purchase_session`），共享本体与客户，不把采购节点塞进销售 LangGraph。
+- 商品种类维护走主数据/OntologyService，不靠改 session JSON 冒充 SKU。
+
+```text
+❌ session.confirm() 里直接 inventory.decrement()
+✅ confirm → outbox.order.confirmed → InventoryPort NoOp（以后订阅）
+```

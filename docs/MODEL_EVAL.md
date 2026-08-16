@@ -83,7 +83,7 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 
 1. **L1 live**：`sales_parser_cases.json` 逐条 `parse(text)`。记录 `parser_name` / `fallback` / `fallback_reason`。
 2. **L0 live**：每条预测的领域对象跑 S1–S6 能静态检查的项（无业务 id、无编造行情数字）；链路项在 L4 查。
-3. **L4 live**：G1–G4 金脚本用**真 Parser** 驱动同一 `SalesSessionRunner`（Understanding / Resolver / Policy 均现网实现，冻结不改）。入口：`python3 -m app.agent.runtime_admission`（无密钥走 Fake；live 须 `RUN_LIVE_LLM=1`）。细则 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)。qwen3.7-plus + parser.v4 结论 **C**。parser.v6 用语言结构 few-shot 修多行货名+规格归属，不改闸门。未得 A 不上语音。
+3. **L4 live**：G1–G4 金脚本用**真 Parser** 驱动同一 `SalesSessionRunner`（Understanding / Resolver / Policy 均现网实现，冻结不改）。入口：`python3 -m app.agent.runtime_admission`（无密钥走 Fake；live 须 `RUN_LIVE_LLM=1`）。细则 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)。qwen3.7-plus + parser.v4 结论 **C**。`parser.v6` 用语言归属规则 + `replacement_mention` 修多行货名+规格，不改闸门。未得 A 不上语音。
 4. **稳定性**：`stall_oral` 与 G1 全文各重复 **3** 次。三次草稿快照或 L1 acts 不一致记 `unstable`。
 
 输出一份 `EvaluationReport`（扩现有 `ParserEvaluationReport`）：`scored=true` 仅在 `live` 模式。Fake / unconfigured 保持 `scored=false`。
@@ -136,13 +136,13 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 `parser.v3` = v2 + 列出允许的 `type` 枚举（禁止 `add_item` 等自造名）+ 规格口语必须 `refine_spec`/`spec_mention`。  
 `parser.v4` = v3 + 量词 uom、「再加N件」为 `set_qty mode=add`、货名指代用 `product_mention`、光杆「那个X」为 `unknown`。  
 `parser.v5` = v4 + 句中货名+规格必须同时输出 `product_mention` 与 `spec_mention`；只有规格时仍允许光杆 `spec_mention`。  
-`parser.v6` = v5 + 语言结构 few-shot（梨/金边/老李等，不塞 Catalog）。当前 Runtime pin 为 `parser.v6`。仍禁止加商品库、禁止 `line_id`。v1–v5 文本保留。
+`parser.v6` = 语言归属最高优先级（句中货名必须进 `product_mention`）+ `replacement_mention` 语言槽 + 同商品品名规格数量合成一条 + 说话顺序不得覆盖。few-shot 学结构不学 Catalog。当前 Runtime pin 为 `parser.v6`。v1–v5 文本保留。
 
 Schema 前的语言层归一（仍不是领域放宽）：
 
 1. 根数组包成 `{"acts": ...}`；已知语言槽抬入 `slots`。
 2. **封闭 type 同义词**（如 `add_item`→`add_line`，`set_spec`→`refine_spec`）。表外自造 type 仍 Schema 失败。禁止把 `done`/`checkout` 映射成 `confirm_order`。
-3. **原文可核对的槽位修补**：货名 act 上 `mention`→`product_mention`（`clarify` 除外）；无货名的 `add_line`+qty → `set_qty mode=add`；无数量的「那个X」`set_line`/`add_line` → `unknown`；「两个」补 `uom=个`。不猜 SKU，不编原句没有的数字。
+3. **原文可核对的槽位修补**：货名 act 上 `mention`→`product_mention`（`clarify` 除外）；`replace_product` 上已有 `product_mention` 时 `mention`→`replacement_mention`；无货名的 `add_line`+qty → `set_qty mode=add`；无数量的「那个X」`set_line`/`add_line` → `unknown`；「两个」补 `uom=个`。不猜 SKU，不编原句没有的数字。
 4. `sku_id` / `customer_id` 等业务字段仍 `extra=forbid`。
 
 L1 匹配：`set_line` 与 `add_line` 在必填槽一致时视为同类（merge 语义仍由 Runner 按 type 区分）。其它 type 必须字面一致。

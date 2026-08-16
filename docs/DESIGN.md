@@ -1121,7 +1121,7 @@ V0.4 前必须：L0 全绿；G1–G4 金脚本绿；四属性独立 + 两键合�
 
 Qwen / GPT / 兼容网关共用 `HttpLlmClient`（`LLM_BASE_URL` + `LLM_MODEL`）。live 评测走同一 `LLMTurnParser` 与 pinned `prompt_id`。默认 pytest 无密钥、不发请求。超时 / 429 / 5xx 在语言入口重试，耗尽才规则兜底；不改 SpeechAct 语义。
 
-Fake 测 Runtime；live 测模型是否抽对 SpeechAct。规则兜底成功不算模型成功。Prompt 当前 pin `parser.v6`。Schema 前只做机械归一：根数组包成 `acts`；已知语言槽抬入 `slots`；封闭 type 同义词（`add_item`→`add_line` 等，不映射 confirm）；原文可核对的槽位修补（`mention`→`product_mention`、无货名加数量→`set_qty`、光杆「那个X」→`unknown`、「两个」→`uom=个`）。`sku_id` / `customer_id` 等业务字段仍 `extra=forbid`。禁止塞 Catalog。G1–G4 Runtime Admission 金脚本见 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)：只驱动现网 Runner，不改闸门。qwen3.7-plus + parser.v4 的 L4 live 结论为 **C**（G1 `spec_lost`/`wrong_act`；无危险行为）。parser.v6 用语言结构 few-shot 修多行归属，不改闸门。至少一个模型达到 L0 全绿、stall_oral ≥90% 且无兜底、G1/G2 真 Parser 三轮快照一致，才可宣传 LLM 成功路径。
+Fake 测 Runtime；live 测模型是否抽对 SpeechAct。规则兜底成功不算模型成功。Prompt 当前 pin `parser.v6`。Schema 前只做机械归一：根数组包成 `acts`；已知语言槽抬入 `slots`；封闭 type 同义词（`add_item`→`add_line` 等，不映射 confirm）；原文可核对的槽位修补（`mention`→`product_mention`、无货名加数量→`set_qty`、光杆「那个X」→`unknown`、「两个」→`uom=个`）。`sku_id` / `customer_id` 等业务字段仍 `extra=forbid`。禁止塞 Catalog。G1–G4 Runtime Admission 金脚本见 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)：只驱动现网 Runner，不改闸门。qwen3.7-plus + parser.v4 的 L4 live 结论为 **C**（G1 `spec_lost`/`wrong_act`；无危险行为）。parser.v6 用语言归属规则与 `replacement_mention` 修多行归属，不改闸门。至少一个模型达到 L0 全绿、stall_oral ≥90% 且无兜底、G1/G2 真 Parser 三轮快照一致，才可宣传 LLM 成功路径。
 
 细则 [MODEL_EVAL.md](MODEL_EVAL.md)、[ADR-019](ADR/ADR-019-real-model-evaluation.md)。
 

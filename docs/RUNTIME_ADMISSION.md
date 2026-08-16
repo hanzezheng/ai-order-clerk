@@ -4,7 +4,7 @@
 >
 > 冻结：不改 Prompt、Resolver、Policy、`confirm_gate`、OrderService、Memory。不上 ASR/TTS、ERP、LangGraph、Tool Calling。失败只记录，不为通过测试放宽闸门。
 
-L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。parser.v6 用语言结构 few-shot 修多行货名+规格归属。本文件是 L4 金脚本准入。
+L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。parser.v6 用语言归属规则与 `replacement_mention` 修多行货名+规格。本文件是 L4 金脚本准入。
 
 ---
 
@@ -93,7 +93,7 @@ G1 在「加两个金边榴莲」之后说「苹果要烟台八零果」。Sessi
 
 ## parser.v6
 
-Runtime 已 pin `parser.v6`（v5 文本保留）。few-shot 只示范语言结构，不塞 Catalog / SKU / 客户列表。不改 Resolver / Policy / Confirm Gate / Memory。
+Runtime 已 pin `parser.v6`（v5 文本保留）。核心是语言归属：句中出现的货名必须进 `product_mention`，focus 由系统维护。`replacement_mention` 只是替品原词，Runner 仍不执行 `replace_product`。不改 Resolver / Policy / Confirm Gate / Memory。
 
 请用真模型重跑 L1 与 G1–G4（G1 默认三轮）：
 

@@ -269,6 +269,36 @@ def test_customer_id_still_rejected_after_normalize():
     raise AssertionError("customer_id must still fail after shape normalization")
 
 
+def test_replacement_mention_is_allowed_language_slot():
+    parsed = parse_llm_output(
+        {
+            "acts": [
+                {
+                    "type": "replace_product",
+                    "slots": {"product_mention": "金边", "replacement_mention": "金枕"},
+                }
+            ]
+        }
+    )
+    assert parsed.acts[0].slots.product_mention == "金边"
+    assert parsed.acts[0].slots.replacement_mention == "金枕"
+    domain = llm_turn_to_domain(parsed, raw_text="金边不要了换金枕")
+    assert domain.acts[0].slots["replacement_mention"] == "金枕"
+    assert "sku_id" not in domain.acts[0].slots
+
+
+def test_replace_product_mention_lifts_to_replacement_mention():
+    parsed = parse_llm_output(
+        {
+            "acts": [
+                {"type": "replace_product", "slots": {"product_mention": "金边", "mention": "金枕"}}
+            ]
+        }
+    )
+    assert parsed.acts[0].slots.replacement_mention == "金枕"
+    assert parsed.acts[0].slots.mention is None
+
+
 def test_unknown_business_field_still_rejected():
     try:
         parse_llm_output([{"type": "set_line", "product_mention": "苹果", "resolved_sku": "x"}])

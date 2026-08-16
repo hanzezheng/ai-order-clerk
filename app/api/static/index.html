@@ -2,198 +2,453 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>农批开单员 · 文本模拟语音</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AI开单员</title>
   <style>
     :root {
-      --bg: #14110d;
-      --panel: #1f1a14;
-      --ink: #f4ead8;
-      --muted: #b7a58d;
-      --accent: #e2a13a;
-      --line: #3a3126;
+      --bg: #0f1410;
+      --panel: #1a221c;
+      --ink: #f3f0e6;
+      --muted: #9aa394;
+      --accent: #3dcc7a;
+      --accent-ink: #062012;
+      --warn: #e7c36a;
+      --line: #2c382f;
     }
     * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0;
       font-family: "PingFang SC", "Noto Sans SC", sans-serif;
-      background: var(--bg);
+      background:
+        radial-gradient(1200px 500px at 50% -10%, #1c3a28 0%, transparent 55%),
+        var(--bg);
       color: var(--ink);
     }
-    main {
-      max-width: 880px;
+    .wrap {
+      max-width: 520px;
       margin: 0 auto;
-      padding: 24px 16px 160px;
+      min-height: 100%;
+      padding: 20px 20px 280px;
     }
-    h1 { font-size: 28px; margin: 0 0 8px; }
-    .hint { color: var(--muted); margin-bottom: 24px; }
-    .reply {
-      min-height: 88px;
-      font-size: 28px;
-      line-height: 1.4;
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    h1 { font-size: 28px; margin: 0; }
+    .customer {
+      margin-top: 8px;
+      font-size: 18px;
+      color: var(--muted);
+    }
+    .customer.has { color: var(--ink); }
+    .dev-toggle {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+    .phase {
+      display: inline-block;
+      margin: 18px 0 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #243028;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .speak {
+      min-height: 132px;
+      font-size: 30px;
+      line-height: 1.35;
+      font-weight: 650;
+      white-space: pre-line;
+    }
+    .order {
+      margin-top: 28px;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
+      border-radius: 20px;
+      padding: 18px;
     }
-    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-    @media (min-width: 800px) { .grid { grid-template-columns: 1.2fr 0.8fr; } }
-    section {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 16px;
+    .order h2 {
+      margin: 0 0 14px;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 600;
     }
-    h2 { font-size: 14px; color: var(--muted); margin: 0 0 12px; letter-spacing: 0.08em; }
-    .line, .event {
-      padding: 10px 0;
-      border-bottom: 1px solid var(--line);
+    .who { font-size: 18px; margin-bottom: 16px; }
+    .item {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
     }
-    .line:last-child, .event:last-child { border-bottom: 0; }
+    .item .name { font-size: 22px; font-weight: 650; }
+    .item .meta { margin-top: 6px; color: var(--muted); font-size: 16px; display: flex; gap: 16px; }
+    .price-tbd { color: var(--warn); }
     .empty { color: var(--muted); }
+    .dev {
+      display: none;
+      margin-top: 18px;
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      word-break: break-all;
+    }
+    body.dev-on .dev { display: block; }
+    .dev h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.1em; }
+    .event { padding: 6px 0; border-bottom: 1px solid var(--line); }
     .dock {
       position: fixed;
       left: 0; right: 0; bottom: 0;
-      background: #100e0b;
-      border-top: 1px solid var(--line);
-      padding: 12px 16px 20px;
+      padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, #0f1410 70%, transparent);
     }
-    .dock-inner { max-width: 880px; margin: 0 auto; display: flex; gap: 12px; align-items: flex-end; }
-    textarea {
-      flex: 1;
-      min-height: 72px;
-      font-size: 22px;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      background: #2a231b;
-      color: var(--ink);
-      resize: none;
-    }
-    button.send {
-      width: 120px;
-      height: 72px;
+    .dock-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .mic {
+      width: 196px;
+      height: 196px;
       border: 0;
-      border-radius: 16px;
+      border-radius: 50%;
       background: var(--accent);
-      color: #1a1208;
+      color: var(--accent-ink);
+      font-size: 22px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 12px 40px rgba(61, 204, 122, 0.28);
+      touch-action: none;
+      user-select: none;
+      line-height: 1.25;
+      padding: 16px;
+    }
+    body[data-ui="LISTENING"] .mic { background: #f3f0e6; }
+    body[data-ui="PROCESSING"] .mic,
+    body[data-ui="SPEAKING"] .mic { opacity: 0.7; }
+    body[data-ui="DONE"] .mic { background: var(--warn); }
+    .done-btn {
+      min-width: 196px;
+      height: 56px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #162019;
+      color: var(--ink);
       font-size: 20px;
       font-weight: 700;
       cursor: pointer;
     }
-    label.more {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 14px;
-      margin: 0 0 8px;
+    .done-btn:disabled { opacity: 0.4; cursor: default; }
+    .hint { color: var(--muted); font-size: 13px; }
+    .sheet {
+      display: none;
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px;
+    }
+    body[data-ui="LISTENING"] .sheet { display: block; }
+    textarea {
+      width: 100%;
+      min-height: 72px;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 22px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
     }
   </style>
 </head>
-<body>
-  <main>
-    <h1>档口开单</h1>
-    <p class="hint">文本模拟语音输入。对着下面大声「说」，系统只走 turns API，不提供表单改单。</p>
-    <div class="reply" id="reply">还没开始。可以说：开李老板的单</div>
-    <div class="grid">
-      <section>
-        <h2>当前草稿（只读）</h2>
-        <div id="draft" class="empty">还没有货</div>
-      </section>
-      <section>
-        <h2>业务时间线</h2>
-        <div id="timeline" class="empty">暂无事件</div>
-      </section>
-    </div>
-  </main>
-  <div class="dock">
-    <div class="dock-inner" style="flex-direction: column;">
-      <label class="more"><input type="checkbox" id="expectMore" /> 还在说（连报，不追问）</label>
-      <div style="display:flex; gap:12px; width:100%;">
-        <textarea id="speech" placeholder="开李老板的单"></textarea>
-        <button class="send" id="send" type="button">说完了</button>
+<body data-ui="IDLE">
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>AI开单员</h1>
+        <div class="customer" id="customer">还没有开始开单</div>
       </div>
+      <button class="dev-toggle" id="devToggle" type="button">开发模式</button>
+    </header>
+
+    <div class="phase" id="phase">按住说话</div>
+    <div class="speak" id="reply">报客户，我来开单。</div>
+
+    <section class="order">
+      <h2>本次订单</h2>
+      <div id="orderBox" class="empty">还没有货</div>
+    </section>
+
+    <section class="dev" id="devPanel">
+      <h2>业务时间线</h2>
+      <div id="timeline" class="empty">暂无事件</div>
+      <h2 style="margin-top:14px;">内核口播</h2>
+      <div id="rawReply" class="empty">无</div>
+      <h2 style="margin-top:14px;">session</h2>
+      <div id="sessionMeta" class="empty">未创建</div>
+    </section>
+  </div>
+
+  <div class="dock">
+    <div class="dock-inner">
+      <div class="sheet">
+        <textarea id="speech" placeholder="正在听…把要说的话写在这里"></textarea>
+      </div>
+      <button class="mic" id="mic" type="button">🎤<br>按住说话</button>
+      <button class="done-btn" id="done" type="button">好了</button>
+      <div class="hint">也可以直接说「好了」。本页用文本模拟语音，没有真麦克风。</div>
     </div>
   </div>
-  <script>
-    const state = { sessionId: null, seq: 0 };
-    const replyEl = document.getElementById("reply");
-    const draftEl = document.getElementById("draft");
-    const timelineEl = document.getElementById("timeline");
-    const speechEl = document.getElementById("speech");
 
-    function renderDraft(draft) {
-      if (!draft || !draft.lines || !draft.lines.length) {
-        const who = draft && draft.customer ? draft.customer.name : "";
-        draftEl.className = "empty";
-        draftEl.textContent = who ? (who + " · 还没有货") : "还没有货";
+  <script>
+    const ui = {
+      sessionId: null,
+      seq: 0,
+      phase: "IDLE",
+      last: null,
+      hold: false,
+    };
+
+    const phaseLabel = {
+      IDLE: "按住说话",
+      LISTENING: "正在听...",
+      PROCESSING: "正在整理...",
+      SPEAKING: "继续说，或者点击好了",
+      DONE: "单已经好了",
+    };
+
+    const micLabel = {
+      IDLE: "🎤\n按住说话",
+      LISTENING: "正在听...",
+      PROCESSING: "正在整理...",
+      SPEAKING: "🎤\n按住说话",
+      DONE: "再开一单",
+    };
+
+    function friendlyBoss(name) {
+      if (!name) return "";
+      if (name.includes("李")) return "李老板";
+      if (name.includes("王")) return "王老板";
+      return name;
+    }
+
+    function friendlyProduct(label) {
+      if (!label) return "货";
+      if (label.includes("青苹果")) return "青苹果";
+      if (label.includes("红富士") || label.includes("苹果")) return "苹果";
+      if (label.includes("皇冠") || label.includes("梨")) return "皇冠梨";
+      if (label.includes("金边") || label.includes("榴莲")) return "金边榴莲";
+      return label;
+    }
+
+    function bossSpeak(body) {
+      if (!body || body.ignored) return "这句没听清，再说一遍。";
+      const draft = body.draft || {};
+      const issues = (body.verdict && body.verdict.issues) || [];
+      const amb = issues.find((item) => item.code === "customer_ambiguous");
+      if (amb) {
+        const names = (amb.options || []).map((opt) => opt.name).filter(Boolean);
+        if (names.length) return "有两家都叫这个，是" + names.join("，还是") + "？";
+        return "有好几家，开哪一家？";
+      }
+      if (issues.some((item) => item.code === "customer_not_found")) {
+        return "没对上这家，再说一遍是哪位老板。";
+      }
+      const who = friendlyBoss(draft.customer && draft.customer.name);
+      const lines = draft.lines || [];
+      if (draft.status === "confirmed") {
+        const goods = lines.map((line) => friendlyProduct(line.label) + line.qty + line.uom).join("，");
+        const tbd = lines.some((line) => line.price_status === "tbd" || !line.unit_price);
+        return [who ? who + "，单好了。" : "单好了。", goods ? goods + "。" : "", tbd ? "价格还没定。" : ""]
+          .filter(Boolean)
+          .join("\n");
+      }
+      if (!draft.customer) return "还没有开始开单。可以说：开李老板的单。";
+      if (!lines.length) return who + "，单开好了，报货吧。";
+      const goods = lines.map((line) => friendlyProduct(line.label) + line.qty + line.uom).join("，");
+      if (body.reply_mode === "ack") return "记下了，" + goods + "。";
+      const tbd = lines.some((line) => line.price_status === "tbd" || !line.unit_price);
+      return (who ? who + "，" : "") + goods + "。" + (tbd ? "\n价格还没定。" : "");
+    }
+
+    function setPhase(phase) {
+      ui.phase = phase;
+      document.body.dataset.ui = phase;
+      document.getElementById("phase").textContent = phaseLabel[phase];
+      document.getElementById("mic").textContent = micLabel[phase];
+      document.getElementById("done").disabled = phase === "PROCESSING" || phase === "DONE";
+      if (phase === "LISTENING") {
+        const box = document.getElementById("speech");
+        box.value = "";
+        setTimeout(() => box.focus(), 30);
+      }
+    }
+
+    function renderCustomer(draft) {
+      const el = document.getElementById("customer");
+      if (draft && draft.customer && draft.customer.name) {
+        el.textContent = "当前订单客户：" + draft.customer.name;
+        el.classList.add("has");
+      } else {
+        el.textContent = "还没有开始开单";
+        el.classList.remove("has");
+      }
+    }
+
+    function renderOrder(draft) {
+      const box = document.getElementById("orderBox");
+      if (!draft || !draft.customer) {
+        box.className = "empty";
+        box.textContent = "还没有货";
         return;
       }
-      draftEl.className = "";
-      const who = draft.customer ? draft.customer.name + " · " : "";
-      draftEl.innerHTML = who + draft.status + draft.lines.map((line) => {
-        const price = line.price_status === "tbd" ? "价未定" : (line.unit_price || "");
-        return `<div class="line">${line.label} ${line.qty}${line.uom} ${price}</div>`;
+      const who = `<div class="who">客户：${friendlyBoss(draft.customer.name) || draft.customer.name}</div>`;
+      if (!draft.lines || !draft.lines.length) {
+        box.className = "";
+        box.innerHTML = who + `<div class="empty">还没有货</div>`;
+        return;
+      }
+      box.className = "";
+      box.innerHTML = who + draft.lines.map((line) => {
+        const tbd = line.price_status === "tbd" || !line.unit_price;
+        const price = tbd ? "价格待定" : (line.unit_price + (line.uom || ""));
+        return `<div class="item"><div class="name">${friendlyProduct(line.label)}</div><div class="meta"><span>${line.qty}${line.uom}</span><span class="${tbd ? "price-tbd" : ""}">${price}</span></div></div>`;
       }).join("");
     }
 
-    function renderTimeline(items) {
-      if (!items || !items.length) {
-        timelineEl.className = "empty";
-        timelineEl.textContent = "暂无事件";
-        return;
+    function renderDev(body) {
+      const items = (body && body.timeline) || [];
+      const timeline = document.getElementById("timeline");
+      if (!items.length) {
+        timeline.className = "empty";
+        timeline.textContent = "暂无事件";
+      } else {
+        timeline.className = "";
+        timeline.innerHTML = items.map((ev) => `<div class="event">${ev.event_type}</div>`).join("");
       }
-      timelineEl.className = "";
-      timelineEl.innerHTML = items.map((ev) => `<div class="event">${ev.event_type}</div>`).join("");
+      document.getElementById("rawReply").textContent = (body && body.reply_text) || "无";
+      document.getElementById("sessionMeta").textContent = ui.sessionId
+        ? ("session_id " + ui.sessionId)
+        : "未创建";
     }
 
     async function ensureSession() {
-      if (state.sessionId) return;
+      if (ui.sessionId) return;
       const res = await fetch("/v1/sessions", { method: "POST" });
       const body = await res.json();
-      state.sessionId = body.session_id;
-      renderDraft(body.draft);
-      renderTimeline(body.timeline);
+      ui.sessionId = body.session_id;
+      ui.last = body;
+      renderCustomer(body.draft);
+      renderOrder(body.draft);
+      renderDev(body);
     }
 
-    async function sendTurn() {
+    async function sendTurn(text) {
+      const said = (text || "").trim();
+      if (!said || ui.phase === "PROCESSING") return;
       await ensureSession();
-      const text = speechEl.value.trim();
-      if (!text) return;
-      state.seq += 1;
-      const res = await fetch(`/v1/sessions/${state.sessionId}/turns`, {
+      setPhase("PROCESSING");
+      ui.seq += 1;
+      const res = await fetch("/v1/sessions/" + ui.sessionId + "/turns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text,
+          text: said,
           source: "text",
           utterance_id: crypto.randomUUID(),
-          seq: state.seq,
+          seq: ui.seq,
           is_final: true,
-          expect_more: document.getElementById("expectMore").checked
+          expect_more: false
         })
       });
       const body = await res.json();
       if (!res.ok) {
-        replyEl.textContent = "这句没接上，请按顺序再说一遍";
+        document.getElementById("reply").textContent = "这句没接上，请再说一遍。";
+        setPhase("IDLE");
         return;
       }
-      replyEl.textContent = body.ignored ? "半句已忽略" : (body.reply_text || "记下了");
-      renderDraft(body.draft);
-      renderTimeline(body.timeline);
-      speechEl.value = "";
-      speechEl.focus();
+      ui.last = body;
+      document.getElementById("reply").textContent = bossSpeak(body);
+      renderCustomer(body.draft);
+      renderOrder(body.draft);
+      renderDev(body);
+      if (body.draft && body.draft.status === "confirmed") {
+        setPhase("DONE");
+        return;
+      }
+      setPhase("SPEAKING");
+      setTimeout(() => {
+        if (ui.phase === "SPEAKING") setPhase("IDLE");
+      }, 900);
     }
 
-    document.getElementById("send").addEventListener("click", sendTurn);
-    speechEl.addEventListener("keydown", (ev) => {
+    async function resetOrder() {
+      ui.sessionId = null;
+      ui.seq = 0;
+      ui.last = null;
+      document.getElementById("reply").textContent = "报客户，我来开单。";
+      renderCustomer(null);
+      renderOrder(null);
+      renderDev(null);
+      setPhase("IDLE");
+      await ensureSession();
+    }
+
+    const mic = document.getElementById("mic");
+    const speech = document.getElementById("speech");
+
+    function startListen() {
+      if (ui.phase === "DONE") {
+        resetOrder();
+        return;
+      }
+      if (ui.phase === "PROCESSING") return;
+      if (ui.phase === "LISTENING") {
+        ui.hold = false;
+        const said = speech.value.trim();
+        if (said) sendTurn(said);
+        else setPhase("IDLE");
+        return;
+      }
+      ui.hold = true;
+      setPhase("LISTENING");
+    }
+
+    function endListen() {
+      if (!ui.hold) return;
+      ui.hold = false;
+      const said = speech.value.trim();
+      if (said) sendTurn(said);
+    }
+
+    mic.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      startListen();
+    });
+    mic.addEventListener("contextmenu", (ev) => ev.preventDefault());
+    window.addEventListener("pointerup", endListen);
+    window.addEventListener("pointercancel", endListen);
+
+    speech.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" && !ev.shiftKey) {
         ev.preventDefault();
-        sendTurn();
+        ui.hold = false;
+        sendTurn(speech.value);
       }
     });
+
+    document.getElementById("done").addEventListener("click", () => {
+      if (ui.phase === "DONE" || ui.phase === "PROCESSING") return;
+      sendTurn("好了");
+    });
+
+    document.getElementById("devToggle").addEventListener("click", () => {
+      document.body.classList.toggle("dev-on");
+      document.getElementById("devToggle").textContent =
+        document.body.classList.contains("dev-on") ? "关闭开发模式" : "开发模式";
+    });
+
+    setPhase("IDLE");
     ensureSession();
   </script>
 </body>

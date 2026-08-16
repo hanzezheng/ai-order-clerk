@@ -16,8 +16,17 @@ def test_demo_page_is_voice_shell_not_erp_form():
     res = client.get("/")
     assert res.status_code == 200
     html = res.text
-    assert "开单" in html
+    assert "AI开单员" in html
+    assert "还没有开始开单" in html
+    assert "本次订单" in html
+    assert "按住说话" in html
+    assert "好了" in html
+    assert "开发模式" in html
+    assert "价格还没定" in html
+    assert "单好了" in html
     assert "/v1/sessions" in html
+    assert "id=\"devPanel\"" in html
+    assert "body.dev-on .dev" in html
     assert "加一行" not in html
     assert "name=\"qty\"" not in html
     assert "库存" not in html

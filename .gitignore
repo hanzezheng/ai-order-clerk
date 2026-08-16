@@ -7,3 +7,5 @@ dist/
 build/
 .DS_Store
 docs/eval/runs/*.json
+docs/eval/runs/runtime_admission_report.md
+docs/eval/runs/*-runtime-admission.md

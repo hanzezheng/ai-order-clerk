@@ -83,7 +83,7 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 
 1. **L1 live**：`sales_parser_cases.json` 逐条 `parse(text)`。记录 `parser_name` / `fallback` / `fallback_reason`。
 2. **L0 live**：每条预测的领域对象跑 S1–S6 能静态检查的项（无业务 id、无编造行情数字）；链路项在 L4 查。
-3. **L4 live**：G1–G4 金脚本用**真 Parser** 驱动同一 `SalesSessionRunner`（Understanding / Resolver / Policy 均现网实现，冻结不改）。
+3. **L4 live**：G1–G4 金脚本用**真 Parser** 驱动同一 `SalesSessionRunner`（Understanding / Resolver / Policy 均现网实现，冻结不改）。入口：`python3 -m app.agent.runtime_admission`（无密钥走 Fake；live 须 `RUN_LIVE_LLM=1`）。细则 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)。
 4. **稳定性**：`stall_oral` 与 G1 全文各重复 **3** 次。三次草稿快照或 L1 acts 不一致记 `unstable`。
 
 输出一份 `EvaluationReport`（扩现有 `ParserEvaluationReport`）：`scored=true` 仅在 `live` 模式。Fake / unconfigured 保持 `scored=false`。

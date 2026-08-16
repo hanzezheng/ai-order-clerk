@@ -128,11 +128,15 @@ AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否
 ### 1.2 模块职责
 
 - **ontology**：商品层级与别名；把口语提到的层级变成可履约节点。
-- **customer profile**：熟客缺槽默认值（他的苹果是哪种）；不是 CRM 长文。
-- **price memory**：行情/成交/报价，带单位与有效期。
+- **product resolver**：`product_mention` 生文本 → 本体节点。只识别，不写 Memory，不套档案默认。
+- **customer profile**：熟客缺槽默认值；由 Policy 决定是否填充。
+- **price memory**：带有效期的报价/成交；禁止静默套 `last_deal` 或过期价。
 - **policy**：槽位优先级、澄清阈值、确认闸门。
 - **session**：本单工作记忆。
-- **memory**：跨会话稳定知识（含档案增量、价格候选），必须过 Extractor。
+- **memory**：Extract → MemoryPolicy → MemoryService。禁止订单确认直接写长期记忆。
+
+`RuleTurnParser` 只做「文本 → SpeechAct」：动词、数量、单位、改口标记。禁止依赖商品本体、客户、价格或别名表。
+
 
 ---
 

@@ -5,17 +5,23 @@ from decimal import Decimal
 from app.entity.catalog import CustomerProfile, ProductMention
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import Quantity
+from app.entity.price import PriceQuote
 from app.entity.session import SalesSession, TurnResult
 from app.entity.speech import SpeechAct
 from app.agent.turn_parser import RuleTurnParser
+from app.memory.extractor import MemoryExtractor
+from app.memory.policy import MemoryPolicy
 from app.policy.decision import DecisionPolicy
 from app.services.catalog_service import CustomerService, OntologyService
+from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
+from app.services.price_memory_service import PriceMemoryService
+from app.services.product_resolver import ProductResolver
 from app.services.ports import SessionRepository
 
 
 class SalesSessionRunner:
-    """parse → policy → service。不访问 ORM。"""
+    """parse → resolve → policy → service → extract → memory policy → memory service。"""
 
     def __init__(
         self,
@@ -24,22 +30,36 @@ class SalesSessionRunner:
         policy: DecisionPolicy,
         customers: CustomerService,
         ontology: OntologyService,
+        resolver: ProductResolver,
         orders: OrderService,
         sessions: SessionRepository,
+        memory_extractor: MemoryExtractor,
+        memory_policy: MemoryPolicy,
+        memory_service: MemoryService,
+        price_memory: PriceMemoryService,
     ) -> None:
         self._parser = parser
         self._policy = policy
         self._customers = customers
         self._ontology = ontology
+        self._resolver = resolver
         self._orders = orders
         self._sessions = sessions
+        self._memory_extractor = memory_extractor
+        self._memory_policy = memory_policy
+        self._memory_service = memory_service
+        self._price_memory = price_memory
 
     def handle(self, session: SalesSession, text: str, *, expect_more: bool = False) -> TurnResult:
         session.turn_index += 1
-        parsed = self._parser.parse(text, self._ontology.alias_table())
+        parsed = self._parser.parse(text)
         acts = list(parsed.acts)
         if session.pending_customer_candidates and not (acts and acts[0].type == "start_order"):
-            extras = [a for a in acts if a.type not in {"unknown", "clarify"}]
+            extras = [
+                a
+                for a in acts
+                if a.type in {"set_line", "add_line", "set_qty", "set_price", "remove_line"}
+            ]
             acts = [SpeechAct(type="clarify", slots={"mention": text})] + extras
 
         all_issues: list[Issue] = []
@@ -53,6 +73,7 @@ class SalesSessionRunner:
             reasons.extend(last_verdict.reasons)
             if last_verdict.allow_execute:
                 executed.append(act.type)
+                self._remember(session, act)
 
         confirm_ok = False
         if any(a.type == "confirm_order" for a in acts):
@@ -84,6 +105,13 @@ class SalesSessionRunner:
             acts=acts,
             commands_executed=executed,
         )
+
+    def _remember(self, session: SalesSession, act: SpeechAct) -> None:
+        if act.type == "confirm_order":
+            return
+        for candidate in self._memory_extractor.extract(act, session):
+            decision = self._memory_policy.decide(candidate)
+            self._memory_service.apply(candidate, decision)
 
     def _apply(self, session: SalesSession, act: SpeechAct, *, expect_more: bool) -> DecisionVerdict:
         if act.type == "start_order":
@@ -127,6 +155,36 @@ class SalesSessionRunner:
             self._orders.apply_line(session, mention, qty, op)
             return line_verdict
 
+        if act.type == "set_price":
+            if session.draft.customer is None:
+                return DecisionVerdict(
+                    allow_execute=False,
+                    issues=[Issue(code="customer_missing", block_level="session_block", message="还没开谁的单")],
+                    reasons=["unbound_customer"],
+                )
+            mention = self._resolve_product(session, str(act.slots.get("product_mention", "")))
+            verdict = self._policy.on_set_price(mention)
+            if not verdict.allow_execute:
+                return verdict
+            quote = PriceQuote(
+                unit_price=Decimal(str(act.slots.get("unit_price"))),
+                price_uom=str(act.slots.get("price_uom") or "块"),
+                source="explicit",
+            )
+            self._orders.set_price(session, mention, quote)
+            return verdict
+
+        if act.type == "refine_spec":
+            mention = self._resolve_product(session, str(act.slots.get("product_mention", "")))
+            line = self._target_line(session, act.slots.get("product_mention"))
+            if line is None or mention.matched_node is None:
+                return DecisionVerdict(
+                    allow_execute=False,
+                    issues=[Issue(code="no_focus_line", block_level="notice", message="改哪一行？")],
+                )
+            self._orders.apply_line(session, mention, line.qty, "set")
+            return DecisionVerdict(allow_execute=True, reasons=["spec_refined"])
+
         if act.type == "set_qty":
             line = self._target_line(session, act.slots.get("product_mention"))
             if line is None:
@@ -157,19 +215,26 @@ class SalesSessionRunner:
         return DecisionVerdict(allow_execute=False, reasons=["unknown_act"])
 
     def _resolve_product(self, session: SalesSession, raw: str) -> ProductMention:
-        mention = self._ontology.lookup(raw)
+        mention = self._resolver.resolve(raw)
         profile: CustomerProfile | None = None
         if session.draft.customer and session.draft.customer.id:
             profile = self._customers.get_profile(session.draft.customer.id)
-        return self._policy.fill_sku(mention, profile)
+        filled = self._policy.fill_sku(mention, profile)
+        customer_id = session.draft.customer.id if session.draft.customer else None
+        sku = filled.resolved_sku
+        if sku is not None and customer_id is not None:
+            lookup = self._price_memory.lookup(customer_id=customer_id, product_id=sku.id)
+            if self._price_memory.silent_quote(lookup) is None:
+                pass
+        return filled
 
     def _default_uom(self, mention: ProductMention) -> str:
         node = mention.resolved_sku or mention.matched_node
         return node.default_uom if node else "件"
 
-    def _target_line(self, session: SalesSession, product_mention: object) -> object:
+    def _target_line(self, session: SalesSession, product_mention: object):
         if product_mention:
-            mention = self._ontology.lookup(str(product_mention))
+            mention = self._resolver.resolve(str(product_mention))
             node = mention.resolved_sku or mention.matched_node
             if node:
                 for line in session.draft.lines:
@@ -201,7 +266,10 @@ class SalesSessionRunner:
             extra = ""
             if ln.mention.filled_from == "profile" and ln.mention.resolved_sku:
                 extra = f"（按档案{ln.mention.resolved_sku.name}）"
-            price = "，价未定" if ln.price.source == "tbd" else ""
+            if ln.price.source == "explicit" and ln.price.unit_price is not None:
+                price = f"，{ln.price.unit_price}{ln.price.price_uom or '块'}"
+            else:
+                price = "，价未定" if ln.price.source == "tbd" else ""
             parts.append(f"{self._line_name(ln)} {ln.qty.value}{ln.qty.uom}{extra}{price}")
         return "当前草稿：" + "；".join(parts) if parts else "还没有货"
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID, uuid5, NAMESPACE_DNS
 
 from app.entity.catalog import CustomerProfile, CustomerRecord, ProductNode
+from app.entity.memory import PriceMemoryRecord
 from app.entity.order import DraftOrder
 from app.entity.session import SalesSession
 from app.services.ports import CatalogRepository, OrderRepository, SessionRepository
@@ -138,11 +139,55 @@ def default_profiles() -> dict[UUID, CustomerProfile]:
     }
 
 
+class InMemoryAliasStore:
+    """长期商品别名。Resolver 只读，写入必须经 MemoryService。"""
+
+    def __init__(self) -> None:
+        self._items: list[tuple[str, UUID]] = []
+
+    def put(self, alias: str, node_id: UUID) -> None:
+        self._items = [(name, nid) for name, nid in self._items if name != alias]
+        self._items.append((alias, node_id))
+
+    def get(self, alias: str) -> UUID | None:
+        for name, node_id in self._items:
+            if name == alias:
+                return node_id
+        return None
+
+    def snapshot(self) -> list[tuple[str, UUID]]:
+        return list(self._items)
+
+
+class InMemoryPriceStore:
+    """价格记忆。禁止被订单确认直接写入。"""
+
+    def __init__(self) -> None:
+        self._items: list[PriceMemoryRecord] = []
+
+    def put(self, record: PriceMemoryRecord) -> None:
+        self._items = [
+            item
+            for item in self._items
+            if not (
+                item.price_type == record.price_type
+                and item.customer_id == record.customer_id
+                and item.product_id == record.product_id
+            )
+        ]
+        self._items.append(record.model_copy(deep=True))
+
+    def snapshot(self) -> list[PriceMemoryRecord]:
+        return [item.model_copy(deep=True) for item in self._items]
+
+
 class InMemoryCatalog(CatalogRepository):
     def __init__(self) -> None:
         self.customers = {c.id: c for c in default_customers()}
         self.nodes = {n.id: n for n in default_nodes()}
         self.profiles = default_profiles()
+        self.aliases = InMemoryAliasStore()
+        self.prices = InMemoryPriceStore()
 
     def list_customers(self) -> list[CustomerRecord]:
         return list(self.customers.values())

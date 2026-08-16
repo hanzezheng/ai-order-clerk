@@ -53,7 +53,7 @@ class OrderService:
         qty: Quantity,
         op: str,
     ) -> OrderLine:
-        existing = self._find_line(session, mention)
+        existing = self._find_line(session, mention, op=op)
         if existing is None:
             line = OrderLine(
                 mention=mention,
@@ -97,6 +97,32 @@ class OrderService:
                     "qty": str(existing.qty.value),
                     "uom": existing.qty.uom,
                     "sku_id": str(existing.product_sku_id) if existing.product_sku_id else None,
+                },
+            )
+        )
+        return existing
+
+    def set_price(self, session: SalesSession, mention: ProductMention, quote: PriceQuote) -> OrderLine:
+        node = mention.resolved_sku or mention.matched_node
+        uom = node.default_uom if node else "件"
+        existing = self._find_line(session, mention, op="set")
+        if existing is None:
+            existing = self.apply_line(session, mention, Quantity(value=Decimal("0"), uom=uom), "set")
+        else:
+            self._upgrade_mention(existing, mention)
+        existing.price = quote
+        if mention.resolved_sku:
+            existing.line_status = "ready" if quote.source != "tbd" else "price_tbd"
+        session.focus_line_id = existing.line_id
+        self._orders.save_draft(session.draft)
+        self._events.publish(
+            DomainEvent(
+                event_type=ORDER_LINE_UPSERTED,
+                aggregate_id=session.draft.order_id,
+                payload={
+                    "line_id": str(existing.line_id),
+                    "price_source": existing.price.source,
+                    "unit_price": str(existing.price.unit_price) if existing.price.unit_price is not None else None,
                 },
             )
         )
@@ -153,7 +179,7 @@ class OrderService:
             line.mention = mention
             line.matched_node_id = mention.matched_node.id
 
-    def _find_line(self, session: SalesSession, mention: ProductMention) -> OrderLine | None:
+    def _find_line(self, session: SalesSession, mention: ProductMention, *, op: str = "set") -> OrderLine | None:
         node = mention.resolved_sku or mention.matched_node
         if node is None:
             return None
@@ -162,7 +188,11 @@ class OrderService:
             if other_id is None:
                 continue
             other = self._ontology.get(other_id)
-            if other and self._ontology.related(node, other):
+            if other is None:
+                continue
+            if self._ontology.related(node, other):
+                return line
+            if op != "add" and self._ontology.same_variety(node, other):
                 return line
         return None
 

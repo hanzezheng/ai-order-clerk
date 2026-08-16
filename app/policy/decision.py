@@ -60,21 +60,6 @@ class DecisionPolicy:
             mention.filled_from = "explicit"
             return mention
         if profile:
-            for key, sku_id in profile.product_defaults.items():
-                default_node = self._ontology.get(sku_id)
-                if default_node is None:
-                    continue
-                if str(node.id) == key or any(str(a.id) == key for a in self._ontology.ancestors(node)):
-                    mention.resolved_sku = default_node
-                    mention.resolve_level = "sku"
-                    mention.filled_from = "profile"
-                    return mention
-                if node.id == default_node.id or self._ontology.related(node, default_node):
-                    if str(node.id) == key:
-                        mention.resolved_sku = default_node
-                        mention.resolve_level = "sku"
-                        mention.filled_from = "profile"
-                        return mention
             sku_id = profile.product_defaults.get(str(node.id))
             if sku_id:
                 sku = self._ontology.get(sku_id)
@@ -126,6 +111,15 @@ class DecisionPolicy:
         )
         reasons.append("price_tbd")
         return DecisionVerdict(allow_execute=True, issues=issues, reasons=reasons, reply_mode="ack" if expect_more else "recap")
+
+    def on_set_price(self, mention: ProductMention) -> DecisionVerdict:
+        if mention.matched_node is None:
+            return DecisionVerdict(
+                allow_execute=False,
+                issues=[Issue(code="product_unknown", block_level="line_hold", message="没听清给哪个货定价")],
+                reasons=["product_unknown"],
+            )
+        return DecisionVerdict(allow_execute=True, reasons=["price_explicit"], reply_mode="ack")
 
     def confirm_gate(self, session: SalesSession) -> DecisionVerdict:
         issues: list[Issue] = []

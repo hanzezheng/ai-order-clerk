@@ -4,9 +4,14 @@ from app.agent.turn_parser import RuleTurnParser
 from app.database.memory import InMemoryCatalog, InMemoryOrders, InMemorySessions
 from app.entity.events import RecordingEventPublisher
 from app.entity.session import SalesSession
+from app.memory.extractor import MemoryExtractor
+from app.memory.policy import MemoryPolicy
 from app.policy.decision import DecisionPolicy
 from app.services.catalog_service import CustomerService, OntologyService
+from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
+from app.services.price_memory_service import PriceMemoryService
+from app.services.product_resolver import ProductResolver
 from app.session.runner import SalesSessionRunner
 
 
@@ -24,8 +29,13 @@ def build_world() -> tuple[SalesSessionRunner, RecordingEventPublisher, InMemory
         policy=policy,
         customers=customers,
         ontology=ontology,
+        resolver=ProductResolver(catalog, catalog.aliases),
         orders=order_service,
         sessions=sessions,
+        memory_extractor=MemoryExtractor(),
+        memory_policy=MemoryPolicy(),
+        memory_service=MemoryService(catalog.aliases, catalog.prices),
+        price_memory=PriceMemoryService(catalog.prices),
     )
     return runner, events, catalog
 

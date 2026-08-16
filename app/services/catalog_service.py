@@ -83,6 +83,20 @@ class OntologyService:
         b_up = {b.id, *[x.id for x in self.ancestors(b)]}
         return a.id in b_up or b.id in a_up
 
+    def same_variety(self, a: ProductNode, b: ProductNode) -> bool:
+        """同一品种下的规格改口可合行；跨品种（苹果/梨）不合。"""
+        left = self._variety_id(a)
+        right = self._variety_id(b)
+        return left is not None and left == right
+
+    def _variety_id(self, node: ProductNode) -> UUID | None:
+        if node.level == "variety":
+            return node.id
+        for ancestor in self.ancestors(node):
+            if ancestor.level == "variety":
+                return ancestor.id
+        return None
+
     def _sku_candidates(self, node: ProductNode) -> list[ProductNode]:
         return self.descendant_skus(node)
 

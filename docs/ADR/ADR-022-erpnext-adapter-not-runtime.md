@@ -2,7 +2,7 @@
 
 标题：ERPNext 只经 Outbox Adapter 接收已确认销售事实；不进 Runtime 裁决
 
-- 状态：proposed
+- 状态：accepted
 - 日期：2026-08-16
 
 ## 背景

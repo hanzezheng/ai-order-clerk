@@ -1159,7 +1159,7 @@ Adapter 在 `TurnIntake` 之外：`app/voice/`（AsrPort、TtsPort、VoiceContro
 order.confirmed → Outbox → ERPNext Adapter → Customer / Item / Draft Sales Order
 ```
 
-Adapter 是新的 Outbox consumer。读已确认 Session 快照做翻译。禁止 `OrderService` 调 ERP API。禁止 `item_code` 进入 Parser / OrderLine / Catalog。SO 保持 Draft：不 submit、不扣库存、不开票、不收款。TBD 价用现网 `prices_incomplete`，不改 `confirm_gate`。
+Adapter 是新的 Outbox consumer（`app/erpnext/`）。读已确认 Session 快照做翻译。禁止 `OrderService` 调 ERP API。禁止 `item_code` 进入 Parser / OrderLine / Catalog。SO 保持 Draft：不 submit、不扣库存、不开票、不收款。TBD 价用现网 `prices_incomplete`，不改 `confirm_gate`。CI 默认 `FakeErpGateway`；`ERPNEXT_URL` 才连真站。
 
 细则 [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)、[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)。
 

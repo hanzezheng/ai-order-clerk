@@ -6,6 +6,7 @@ from app.bootstrap import build_app_world, new_session
 from app.database.memory import APPLE, FUJI80, LI_BOSS, InMemoryOutbox, InMemoryProcessedEvents
 from app.database.uow import InMemoryUnitOfWork
 from app.entity.events import ORDER_CONFIRMED, OutboxRecord, aggregate_type_for
+from app.erpnext.ports import ERPNEXT_ADAPTER_CONSUMER
 from app.services.ports import MEMORY_EXTRACTOR_CONSUMER, TIMELINE_CONSUMER
 from app.tests.pgutil import postgres_url_or_skip
 
@@ -85,6 +86,7 @@ def test_confirm_writes_outbox_and_consumers_mark_separately():
     processed = world.events._consumers[0]._processed
     assert processed.has(MEMORY_EXTRACTOR_CONSUMER, event_id) is True
     assert processed.has(TIMELINE_CONSUMER, event_id) is True
+    assert processed.has(ERPNEXT_ADAPTER_CONSUMER, event_id) is True
     assert (
         world.outbox.list_pending(
             MEMORY_EXTRACTOR_CONSUMER,
@@ -93,6 +95,7 @@ def test_confirm_writes_outbox_and_consumers_mark_separately():
         == []
     )
     assert world.outbox.list_pending(TIMELINE_CONSUMER) == []
+    assert world.outbox.list_pending(ERPNEXT_ADAPTER_CONSUMER, event_types=(ORDER_CONFIRMED,)) == []
     assert any(item.event_type == ORDER_CONFIRMED for item in world.timeline.list(session.session_id))
     evidence = _evidence(world)
     assert evidence is not None

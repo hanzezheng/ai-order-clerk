@@ -1,12 +1,12 @@
 # V0.5 ERPNext Adapter
 
 > 当前遵守 [AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md)。
-> 本 Sprint 只允许修改：**ERPNext Adapter**（本文件为设计；实现另 PR）。
+> 本 Sprint 只允许修改：**ERPNext Adapter**（`app/erpnext/`、装配、本文件与 ADR-022）。
 > 禁止修改：Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory。
 >
-> 当前版本：`v0.4 Voice Adapter`。
+> 当前版本：`v0.5 ERPNext Adapter`。
 >
-> **只输出设计，不写代码。** 最高架构约束仍是架构文。产品细则见 [DESIGN.md](DESIGN.md)。决策见 [ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)。
+> 已落地路径：`order.confirmed → Outbox → ERPNext Adapter → Draft Sales Order`。最高架构约束仍是架构文。产品细则见 [DESIGN.md](DESIGN.md)。决策见 [ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)。
 
 路径固定：
 
@@ -89,15 +89,15 @@ Adapter 与 Voice Adapter 对称：都在 Runtime **之外**。Voice 换 text �
 | 把草稿行（未确认）推到 ERP | 只有确认是公司事实 |
 | 在 ERP 页面做聊天框反向开单 | 架构禁止 |
 
-### 1.4 模块边界（落地时，本文件不写代码）
+### 1.4 模块边界
 
-建议包：`app/erpnext/`（或 `app/adapters/erpnext/`），**禁止**被 Parser / Policy / OrderService import。
+包：`app/erpnext/`。**禁止**被 Parser / Policy / OrderService import。
 
 | 模块 | 职责 |
 | --- | --- |
 | `ErpnextConsumer` | Outbox consumer 名 `erpnext_adapter`；只处理 `order.confirmed`（V0.5） |
 | `ErpGateway` | HTTP/RPC；超时、重试；不知道 SpeechAct |
-| `CustomerMapper` / `ItemMapper` / `SalesOrderMapper` | Runtime 实体 → ERP 文档 |
+| `ErpDraftMapper` | Runtime 已确认快照 → Customer / Item / SO 草稿 |
 | `CorrelationStore` | `runtime_id ↔ erp_name`，只存在 Adapter |
 | `FakeErpGateway` | CI；断言调用形状，不连真站 |
 
@@ -349,7 +349,7 @@ erp_order_map     (runtime_order_id → sales_order_name)
 
 CI 默认 `FakeErpGateway`。真站点只在显式配置（如 `ERPNEXT_URL`）下出现，与 LLM live 一样不进默认 pytest。
 
-### 6.4 契约测试（设计；实现时再写）
+### 6.4 契约测试
 
 - 确认李老板苹果 TBD：Runtime `confirm_ok` 与现网一致；Fake ERP 收到一张 Draft SO、`prices_incomplete`、无 submit、无 stock。
 - G1 确认后：SO 客户不是王强；行 Item 对应 FUJI80 与金边 SKU，不是「苹果」节点。
@@ -373,16 +373,14 @@ CI 默认 `FakeErpGateway`。真站点只在显式配置（如 `ERPNEXT_URL`）�
 
 ---
 
-## 8. 设计批准后的落地顺序
-
-仍不在本文件写代码：
+## 8. 落地顺序（已完成）
 
 ```text
 1. FakeErpGateway + CorrelationStore（内存）
 2. ErpnextConsumer 挂上 Dispatcher（只订 order.confirmed）
-3. Customer / Item / Sales Order mapper 单测（领域快照 → 调用形状）
-4. 与现网 G2 确认剧本的契约测试（Runtime 结局不变）
-5. 显式配置才连真 ERPNext；默认 CI 不连
+3. Customer / Item / Sales Order mapper（领域快照 → 调用形状）
+4. 与现网确认剧本的契约测试（Runtime 结局不变；ERP 失败不改 confirmed）
+5. HttpErpGateway：显式 ERPNEXT_URL 才连真站；默认 CI 走 Fake
 ```
 
 任一步需要改冻结内核才能「ERP 过账」→ **停**，回本设计，不改闸门。

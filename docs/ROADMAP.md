@@ -17,7 +17,7 @@ Voice-first 行业 AI Agent。当前垂直：农批开单员。路线服从 `doc
 
 验收见 DESIGN §13：30 秒连报、中途改口、同名客户、层级歧义、缺价不中断。
 
-是否进入真 ASR/TTS 仍以 [VALIDATION.md](VALIDATION.md) 的行为指标为准，并服从 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。阶段 1 稳定合并节点：`v0.1-learning-agent`。v0.2-persistent-agent：Port + PostgreSQL 可重启。Sprint 11：Durable Outbox。V0.3A：LLM 默认语言入口。V0.3B：商品理解（规格属性过滤；不建 SKU、不接 ERP）。V0.3C：农批语言分层评测与复杂订单金脚本；未达标不得开工 V0.4。V0.3D：真模型 live 评测（同一 Runtime 入口；默认 CI 不发请求）。parser.v6 + qwen3.7-plus 的 G1–G4 为 A 之后，V0.4 只做 Voice Adapter。V0.5 设计 ERPNext Adapter：只经 Outbox 写 Draft Sales Order，不改开单内核。见 [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)。
+是否进入真 ASR/TTS 仍以 [VALIDATION.md](VALIDATION.md) 的行为指标为准，并服从 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。阶段 1 稳定合并节点：`v0.1-learning-agent`。v0.2-persistent-agent：Port + PostgreSQL 可重启。Sprint 11：Durable Outbox。V0.3A：LLM 默认语言入口。V0.3B：商品理解（规格属性过滤；不建 SKU、不接 ERP）。V0.3C：农批语言分层评测与复杂订单金脚本；未达标不得开工 V0.4。V0.3D：真模型 live 评测（同一 Runtime 入口；默认 CI 不发请求）。parser.v6 + qwen3.7-plus 的 G1–G4 为 A 之后，V0.4 只做 Voice Adapter。V0.5 落地 ERPNext Adapter：只经 Outbox 写 Draft Sales Order，不改开单内核。见 [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)。
 
 ## 阶段 2：真实业务连接
 
@@ -25,7 +25,7 @@ Voice-first 行业 AI Agent。当前垂直：农批开单员。路线服从 `doc
 
 包含：
 
-- ERPNext Adapter（Customer / Item / Sales Order；TBD 价标记 `prices_incomplete`）
+- ERPNext Adapter（V0.5 已落地 Draft Sales Order；TBD 价标记 `prices_incomplete`；仍不 submit）
 - Inventory（订阅 `order.confirmed`，SalesSession 内不扣库存）
 - Payment（独立 PaymentSession；确认开单 ≠ 已收款）
 - Purchase（PurchaseSession，复用本体与 SpeechAct）

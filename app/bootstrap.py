@@ -21,6 +21,9 @@ from app.database.memory import (
 from app.database.uow import InMemoryUnitOfWork
 from app.entity.events import RecordingEventPublisher
 from app.entity.session import SalesSession
+from app.erpnext.consumer import ErpnextConsumer
+from app.erpnext.fake import FakeErpGateway
+from app.erpnext.http import HttpErpGateway, live_gateway_from_env
 from app.events.consumers import MemoryConsumer, TimelineConsumer
 from app.events.dispatcher import EventDispatcher
 from app.events.gateway import TurnGateway
@@ -54,6 +57,7 @@ class AppWorld:
     intake: TurnIntake
     workbench: WorkbenchService
     outbox: OutboxRepository
+    erpnext: FakeErpGateway | HttpErpGateway
     engine: object | None = None
 
 
@@ -92,6 +96,7 @@ def assemble_world(
     extractor = MemoryExtractor(evidence=evidence, ontology=ontology)
     memory_policy = MemoryPolicy()
     memory_service = MemoryService(bundle.aliases, bundle.prices, bundle.catalog)
+    erp_gateway = live_gateway_from_env() or FakeErpGateway()
     dispatcher = EventDispatcher(
         uow=unit,
         outbox=bundle.outbox,
@@ -104,6 +109,11 @@ def assemble_world(
                 processed=bundle.processed,
             ),
             TimelineConsumer(timeline),
+            ErpnextConsumer(
+                gateway=erp_gateway,
+                catalog=bundle.catalog,
+                processed=bundle.processed,
+            ),
         ],
     )
     order_service = OrderService(bundle.orders, ontology, dispatcher)
@@ -144,6 +154,7 @@ def assemble_world(
         intake=intake,
         workbench=workbench,
         outbox=bundle.outbox,
+        erpnext=erp_gateway,
         engine=engine,
     )
 

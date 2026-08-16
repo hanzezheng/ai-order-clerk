@@ -3,10 +3,11 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 
-from app.entity.issue import DecisionVerdict
+from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import OrderLine
-from app.entity.reply import ReplyLineFact, ReplyPlan, ReplyQuestion, SourceRef
+from app.entity.reply import ReplyLineFact, ReplyNotice, ReplyPlan, ReplyQuestion, SourceRef
 from app.entity.session import SalesSession
+from app.entity.context import NoticeSeverity
 
 
 def _num(value: Decimal) -> str:
@@ -76,6 +77,7 @@ def build_reply_plan(
             confirmed=False,
             question=ReplyQuestion(code="customer_ambiguous", option_labels=labels),
             source_refs=refs,
+            notices=[],
         )
 
     customer_label = session.draft.customer.name if session.draft.customer else None
@@ -98,12 +100,56 @@ def build_reply_plan(
     if any(f.from_profile for f in facts) and scope == "full":
         must_say.append("profile_default")
 
+    notices: list[ReplyNotice] = []
+    if scope == "full" and verdict.reply_mode != "ask":
+        for issue in verdict.issues:
+            notice = _notice_from_issue(issue)
+            if notice is None:
+                continue
+            notices.append(notice)
+            refs.extend(notice.source_refs)
+
     return ReplyPlan(
         mode=verdict.reply_mode,
         reply_scope=scope,
         confirmed=confirmed,
         customer_label=customer_label,
         lines=facts,
+        notices=notices,
         source_refs=refs,
         must_say=must_say,
+    )
+
+
+_NOTICE_SEVERITY = {
+    "price_tbd": NoticeSeverity.NORMAL,
+    "profile_default_used": NoticeSeverity.LOW,
+    "last_deal_available_not_applied": NoticeSeverity.NORMAL,
+    "price_memory_expired": NoticeSeverity.HIGH,
+    "market_hint_not_applied": NoticeSeverity.LOW,
+}
+
+
+def _notice_from_issue(issue: Issue) -> ReplyNotice | None:
+    if issue.block_level != "notice":
+        return None
+    refs: list[SourceRef] = []
+    for opt in issue.options:
+        if opt.get("unit_price"):
+            refs.append(
+                SourceRef(
+                    kind="price",
+                    text=str(opt["unit_price"]),
+                    origin="memory_fact",
+                    subject_id=issue.subject_line_id,
+                )
+            )
+        if opt.get("price_uom"):
+            refs.append(SourceRef(kind="uom", text=str(opt["price_uom"]), origin="memory_fact"))
+        if opt.get("sku_name"):
+            refs.append(SourceRef(kind="sku", text=str(opt["sku_name"]), origin="verdict"))
+    return ReplyNotice(
+        code=issue.code,
+        severity=_NOTICE_SEVERITY.get(issue.code, NoticeSeverity.NORMAL),
+        source_refs=refs,
     )

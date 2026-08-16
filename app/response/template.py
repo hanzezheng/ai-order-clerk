@@ -10,6 +10,11 @@ _GLUE_CONFIRM = "单已确认："
 _GLUE_ASK = "有多家都叫这个，请问是哪一家？"
 _GLUE_TBD = "价未定"
 _GLUE_PROFILE = "按档案"
+_NOTICE_GLUE = {
+    "last_deal_available_not_applied": "未采用成交价",
+    "price_memory_expired": "成交价已过期",
+    "market_hint_not_applied": "今日行情未写入",
+}
 
 
 class TemplateResponseGenerator:
@@ -23,14 +28,26 @@ class TemplateResponseGenerator:
             parts = [self._line(item, recap=True) for item in plan.lines]
             who = plan.customer_label or ""
             prefix = f"{who} {_GLUE_CONFIRM}" if who else _GLUE_CONFIRM
-            return prefix + "，".join(parts)
+            return prefix + "，".join(parts) + self._notices(plan)
         if plan.mode == "ack" or plan.reply_scope == "changed_only":
             if not plan.lines:
                 return _GLUE_ACK_EMPTY
             return _GLUE_ACK + "，".join(self._line(item, recap=False) for item in plan.lines)
         if not plan.lines:
             return _GLUE_EMPTY
-        return _GLUE_RECAP + "；".join(self._line(item, recap=True) for item in plan.lines)
+        return _GLUE_RECAP + "；".join(self._line(item, recap=True) for item in plan.lines) + self._notices(plan)
+
+    def _notices(self, plan: ReplyPlan) -> str:
+        chunks: list[str] = []
+        for notice in plan.notices:
+            glue = _NOTICE_GLUE.get(notice.code)
+            if not glue:
+                continue
+            extras = "".join(ref.text for ref in notice.source_refs if ref.kind in {"price", "uom"})
+            chunks.append(f"{glue}{extras}")
+        if not chunks:
+            return ""
+        return "。" + "；".join(chunks)
 
     def _line(self, item: ReplyLineFact, *, recap: bool) -> str:
         if not recap:

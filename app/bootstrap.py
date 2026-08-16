@@ -11,6 +11,7 @@ from app.policy.decision import DecisionPolicy
 from app.response.grounder import ReplyGrounder
 from app.response.template import TemplateResponseGenerator
 from app.services.catalog_service import CustomerService, OntologyService
+from app.services.context_loader import ContextLoader
 from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
 from app.services.price_memory_service import PriceMemoryService
@@ -41,6 +42,7 @@ def build_world(parser: TurnParser | None = None) -> tuple[SalesSessionRunner, R
         price_memory=PriceMemoryService(catalog.prices),
         response_generator=TemplateResponseGenerator(),
         reply_grounder=ReplyGrounder(),
+        context_loader=ContextLoader(catalog, catalog.prices),
     )
     return runner, events, catalog
 

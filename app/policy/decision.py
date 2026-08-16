@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.entity.catalog import CustomerProfile, CustomerRef, ProductMention
+from app.entity.context import BusinessContext
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.session import SalesSession
 from app.services.catalog_service import OntologyService
@@ -149,3 +150,64 @@ class DecisionPolicy:
             reasons=["confirm_ok"] if not blocking else [i.code for i in blocking],
             reply_mode="recap" if not blocking else "ask",
         )
+
+    def collect_notices(self, session: SalesSession, context: BusinessContext) -> list[Issue]:
+        """由 BusinessContext 产出 notice。不改订单、不写 Memory。"""
+        if context.customer_id is None:
+            return []
+        if session.draft.customer is None or session.draft.customer.id is None:
+            return []
+        lines = {ln.line_id: ln for ln in session.draft.lines}
+        issues: list[Issue] = []
+        for item in context.profile_defaults:
+            issues.append(
+                Issue(
+                    code="profile_default_used",
+                    block_level="notice",
+                    ask_when="idle",
+                    subject_line_id=item.line_id,
+                    options=[{"sku_name": item.sku_name}],
+                )
+            )
+        for fact in context.price_facts:
+            line = lines.get(fact.line_id) if fact.line_id else None
+            if line is not None and line.price.source == "explicit":
+                continue
+            amount = str(int(fact.unit_price)) if fact.unit_price == fact.unit_price.to_integral_value() else str(fact.unit_price)
+            payload = {
+                "unit_price": amount,
+                "price_uom": fact.price_uom,
+                "price_type": fact.price_type,
+            }
+            if fact.expired:
+                issues.append(
+                    Issue(
+                        code="price_memory_expired",
+                        block_level="notice",
+                        ask_when="idle",
+                        subject_line_id=fact.line_id,
+                        options=[payload],
+                    )
+                )
+                continue
+            if fact.price_type == "last_deal":
+                issues.append(
+                    Issue(
+                        code="last_deal_available_not_applied",
+                        block_level="notice",
+                        ask_when="idle",
+                        subject_line_id=fact.line_id,
+                        options=[payload],
+                    )
+                )
+            elif fact.price_type == "market_today":
+                issues.append(
+                    Issue(
+                        code="market_hint_not_applied",
+                        block_level="notice",
+                        ask_when="idle",
+                        subject_line_id=fact.line_id,
+                        options=[payload],
+                    )
+                )
+        return issues

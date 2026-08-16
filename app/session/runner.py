@@ -16,6 +16,7 @@ from app.response.grounder import ReplyGrounder
 from app.response.planner import build_reply_plan
 from app.response.template import TemplateResponseGenerator
 from app.services.catalog_service import CustomerService, OntologyService
+from app.services.context_loader import ContextLoader
 from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
 from app.services.price_memory_service import PriceMemoryService
@@ -42,6 +43,7 @@ class SalesSessionRunner:
         price_memory: PriceMemoryService,
         response_generator: TemplateResponseGenerator | None = None,
         reply_grounder: ReplyGrounder | None = None,
+        context_loader: ContextLoader | None = None,
     ) -> None:
         self._parser = parser
         self._policy = policy
@@ -56,6 +58,7 @@ class SalesSessionRunner:
         self._price_memory = price_memory
         self._response = response_generator or TemplateResponseGenerator()
         self._grounder = reply_grounder or ReplyGrounder()
+        self._context_loader = context_loader
 
     def handle(self, session: SalesSession, text: str, *, expect_more: bool = False) -> TurnResult:
         session.turn_index += 1
@@ -95,6 +98,12 @@ class SalesSessionRunner:
                 self._orders.confirm(session)
                 executed.append("confirm_order")
             reasons.extend(gate.reasons)
+
+        if self._context_loader is not None:
+            context = self._context_loader.load(session)
+            notice_issues = self._policy.collect_notices(session, context)
+            all_issues.extend(notice_issues)
+            reasons.extend(i.code for i in notice_issues)
 
         if any(i.block_level == "session_block" for i in all_issues):
             reply_mode = "ask"

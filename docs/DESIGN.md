@@ -136,7 +136,8 @@ AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否
 - **policy**：槽位优先级、澄清阈值、确认闸门。只决定 `reply_mode` / Issue，不写台词。
 - **session**：本单工作记忆。
 - **memory**：Extract → MemoryPolicy → MemoryService。禁止订单确认直接写长期记忆。
-- **response**：`snapshot + verdict → ReplyPlan → TemplateResponseGenerator → ReplyGrounder`。只表达，不裁决。`reply_scope=changed_only` 用于连报 ack，禁止把全单再念一遍。Sprint 4A 不做 LLM 回复。
+- **response**：`snapshot + verdict → ReplyPlan → TemplateResponseGenerator → ReplyGrounder`。只表达，不裁决。`reply_scope=changed_only` 用于连报 ack。提醒只渲染 `ReplyPlan.notices`，禁止 Memory 直接触发回复。
+- **business context**：绑客户后的只读投影（本单行相关的档案默认与价格记忆事实）。禁止把 Profile/Memory 全量塞进 Session。未绑定客户不得加载。
 
 `TurnParser`（`parse(text) -> TurnParse`）是唯一语言入口。`RuleTurnParser` 与 `LLMTurnParser` 可互换。LLM 只抽 SpeechAct；失败必须 fallback 到规则 Parser，并保留 `parser_name` / `fallback` / `fallback_reason`。LLM 输出 Schema 经转换层才变成领域 `SpeechAct`。禁止依赖 LLM 才能开单。
 
@@ -208,7 +209,13 @@ SourceRef          kind: qty | price | sku | customer | stall | uom,
 ReplyLineFact      line_id, label, qty_text, uom, price_text?, price_tbd, from_profile, sku_text?
 ReplyQuestion      code, option_labels[]
 ReplyPlan          mode, reply_scope: changed_only | full, confirmed,
-                   customer_label?, lines[], question?, source_refs[], must_say[]
+                   customer_label?, lines[], question?, notices[], source_refs[], must_say[]
+ReplyNotice        code, severity, source_refs[]   # 禁止存最终中文
+NoticePriority     high | normal | low   # 预留，5A 不排序
+
+# 业务摘要（Sprint 5A，只读投影）
+BusinessContext    customer_id?, profile_defaults[]（仅本单已用）, price_facts[]
+PriceRiskFact      line_id?, sku_id, price_type, unit_price, price_uom, expired
 ```
 
 `line_status`：`unresolved | pending_clarify | ready | price_tbd | confirmed`。  
@@ -579,6 +586,8 @@ category     水果 / 蔬菜 / …
 
 冲突：若 special 与 market 偏差超过阈值（建议 10%），必须澄清，不得平均、不得取中间。
 
+Sprint 5A：`last_deal` / `market_today` **只提供事实**。Policy 可生成 `notice`（未采用 / 已过期 / 行情未写入），**不得改订单行价**。禁止 Memory 或 ContextLoader 直接触发口播。
+
 ### 8.3 Extractor 与价格
 
 **可记：** 本句明确单价且已解析到 sku；确认单上 `price_source=explicit` 的行 → `last_deal`。  
@@ -610,7 +619,7 @@ category     水果 / 蔬菜 / …
 | --- | --- | --- | --- |
 | `session_block` | 同名客户未消歧 | 货进行缓冲；立刻问客户（否则档案会用错） | 不能 confirm |
 | `line_hold` | 该行 SKU 歧义、无默认 | **该行挂节点，后续品继续收**；问题进 deferred | idle 时一次问一行或汇总；confirm 时成为闸门 |
-| `notice` | `price_tbd`、已用档案默认 | 不提问 | recap 时声明；**不阻止 confirm**（qty_first） |
+| `notice` | `price_tbd`、档案已用、未采用 last_deal、过期价、行情未写入 | **ack 不说**；问题进 deferred | recap/确认时由 ReplyPlan.notices 表达；**不阻止 confirm**；**不改行价** |
 
 价格记忆冲突：连报中当 `line_hold` 仅挂在价槽，**数量行仍落地**；不问价直到 idle。禁止把缺价写成 session_block。
 
@@ -673,7 +682,10 @@ verdict + session snapshot + changed_line_ids
 - Sprint 4A Grounder 为**白名单**：从回复中按最长优先删去 `source_refs.text` 与固定虚词；若仍有剩余字符则非法。不做 NLP。  
 - `TemplateResponseGenerator` 只拼接 Plan 字段与固定虚词（记下了、当前草稿、价未定、按档案、单已确认、请问是哪一家、还没有货）。  
 - 接地失败：回退到同样只含 Plan 字段的安全拼接，记下 `reply_fallback_reason=grounding_violation`。  
-- 4A 不实现 `LLMResponseGenerator`。
+- `reply_scope=changed_only`：`notices` 必须为空。  
+- `reply_scope=full`：Planner 把 verdict 里 `block_level=notice` 的 Issue 变成 `ReplyNotice`（code / severity / source_refs），**不拷贝 Issue.message**。模板按 code 拼虚词 + refs。  
+- `NoticePriority` 字段预留，5A 不按优先级排序。  
+- 流程：`BusinessContext → Policy.collect_notices → Issue(notice) → ReplyPlan.notices → Response`。禁止 ReminderAgent，禁止 Memory 直连 Generator。
 
 ---
 
@@ -712,10 +724,11 @@ verdict + session snapshot + changed_line_ids
 4. Profile / PriceMemory  
 5. TurnParser 可替换 + LLM Parser fallback  
 6. Response Layer：ReplyPlan + 模板 Generator + 白名单 Grounder + 对话集  
-7. API turns（utterance_id / expect_more）  
-8. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
-9. Extractor 闸门  
-10. outbox 事件 + 各 Port NoOp  
+7. BusinessContext 只读投影 + Policy notice（不套价）  
+8. API turns（utterance_id / expect_more）  
+9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
+10. Extractor 闸门  
+11. outbox 事件 + 各 Port NoOp  
 
 ---
 

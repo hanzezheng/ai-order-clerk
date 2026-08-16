@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from app.agent.evaluation import ParserEvaluationRecord, ParserEvaluationReport
 from app.agent.llm_client import FakeLlmClient, UnconfiguredLlmClient, client_from_env
 from app.agent.llm_convert import llm_turn_to_domain
-from app.agent.llm_parser import LLMTurnParser
+from app.agent.llm_parser import LLMTurnParser, parse_llm_output
 from app.agent.llm_schema import LlmTurnParse
 from app.agent.parser import TurnParser
 from app.agent.turn_parser import RuleTurnParser
@@ -94,7 +94,7 @@ def test_invalid_json_falls_back_to_rule_parser():
     ).parse("苹果60件")
     assert parsed.parser_name == "rule"
     assert parsed.fallback is True
-    assert parsed.fallback_reason
+    assert parsed.fallback_reason == "invalid_json"
     assert parsed.acts[0].type == "set_line"
     assert parsed.acts[0].slots["product_mention"] == "苹果"
     assert parsed.acts[0].slots["qty"] == 60
@@ -207,7 +207,7 @@ def test_spec_mention_stays_language_slot_and_is_not_mapped_to_sku():
 def test_prompt_has_no_catalog_or_price_knowledge():
     from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 
-    assert PARSER_PROMPT_ID == "parser.v1"
+    assert PARSER_PROMPT_ID == "parser.v2"
 
     for needle in (
         "红富士80",
@@ -220,6 +220,52 @@ def test_prompt_has_no_catalog_or_price_knowledge():
         "Catalog",
     ):
         assert needle not in PARSER_SYSTEM_PROMPT
+
+
+def test_qwen_array_with_flat_slots_normalizes_without_fallback():
+    parsed = _llm_parser(
+        '```json\n[\n  {\n    "type": "start_order",\n    "customer_mention": "王老板"\n  }\n]\n```'
+    ).parse("开王老板的单")
+    assert parsed.fallback is False
+    assert parsed.parser_name == "llm"
+    assert parsed.acts[0].type == "start_order"
+    assert parsed.acts[0].slots["customer_mention"] == "王老板"
+
+
+def test_flat_language_slots_lift_into_slots():
+    parsed = parse_llm_output(
+        [{"type": "refine_spec", "spec_mention": "八零果"}]
+    )
+    assert parsed.acts[0].type == "refine_spec"
+    assert parsed.acts[0].slots.spec_mention == "八零果"
+
+
+def test_top_level_sku_id_still_rejected_after_normalize():
+    try:
+        parse_llm_output(
+            [{"type": "set_line", "product_mention": "苹果", "qty": 60, "sku_id": "fuji-80"}]
+        )
+    except ValidationError:
+        return
+    raise AssertionError("sku_id must still fail after shape normalization")
+
+
+def test_customer_id_still_rejected_after_normalize():
+    try:
+        parse_llm_output(
+            {"acts": [{"type": "start_order", "slots": {"customer_mention": "老王", "customer_id": "x"}}]}
+        )
+    except ValidationError:
+        return
+    raise AssertionError("customer_id must still fail after shape normalization")
+
+
+def test_unknown_business_field_still_rejected():
+    try:
+        parse_llm_output([{"type": "set_line", "product_mention": "苹果", "resolved_sku": "x"}])
+    except ValidationError:
+        return
+    raise AssertionError("unknown business field must still fail")
 
 
 def test_json_fences_are_stripped_before_schema():

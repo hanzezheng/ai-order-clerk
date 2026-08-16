@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -829,6 +829,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8e. Sprint 6B Learning Memory Loop：确认事件 → Extractor → Evidence → MemoryPolicy → Storage。LLM 不写记忆。不上 ASR/TTS。合并节点 `v0.1-learning-agent`。  
 8f. Sprint 7 Adaptive Memory：Session 级默认抑制（只影响本单）；确认后 `memory.preference_adjusted`；Evidence 负向 delta + 正负计数；修正事件不写 `product_default`。冻结 Parser / Resolver / `Policy.confirm_gate` / OrderService / Response。  
 8g. Sprint 8A 客户冷启动：未知客户 → 档口区分事实 → candidate 实体；确认后 observed/trusted。商品仅 ProductMention candidate，不创建 SKU、不改 Ontology。冻结 Parser / Resolver 主流程 / `confirm_gate` / OrderService / Memory 写入路径。  
+8h. Sprint 9A Workbench：当日销售任务组织；一单仍一个 SalesSession；显式 `POST /v1/workbench/tasks` 开下一单。不自动路由 `start_order`。冻结 Parser / Resolver / `confirm_gate` / OrderService / Memory / Response。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -986,3 +987,15 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
 优先：未知客户 + 档口区分事实 → Catalog candidate。商品只记 ProductMention candidate，不创建 SKU、不改 Ontology。
 
 冻结：Parser、Resolver 主流程、`confirm_gate`、OrderService、Memory 写入路径。ReplyPlan 允许新增 `customer_unknown` 问句 code；Grounder 算法不变。
+
+### 14.8 Workbench（Sprint 9A）
+
+薄工作台：只组织**当天**销售任务。不是 Agent、不是 Memory、不是 ERP。
+
+`SalesSession` 永远一张销售单。禁止在 Session 上增加跨单字段、聊天、当日订单列表。
+
+自然语言仍只进 `POST /v1/sessions/{id}/turns`。Workbench **不解析语言、不调 Resolver、不写 Memory**。
+
+第一版只做显式新任务：`POST /v1/workbench/tasks` 创建新的 `SalesSession` 并设为当前任务。不做 `start_order` 自动路由。已确认任务对 turns 只读（`task_completed`）。`paused` 预留，本阶段不实现切换到暂停。
+
+索引字段：session_id、order_id、status、customer 标签、行数、确认时间。禁止 `user_text` / 口播历史。

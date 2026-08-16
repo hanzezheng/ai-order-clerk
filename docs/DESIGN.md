@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -866,6 +866,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8j. Sprint 10B PostgreSQL：同一套 Port 的可重启实现，只存在 database 层。Kill & Restart 后客户、Evidence、Workbench、未完成 Session 仍在。  
 8k. Sprint 11 Durable Event Boundary：同库最小 Outbox；Memory/Timeline 消费 pending；事务 A/B。不建设消息平台，不接 ERP。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
 8l. V0.3A LLM Language Runtime：`LLMTurnParser` 为默认语言入口；双层 Schema；无配置时直接规则解析且行为与 v0.2 一致。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。不上 LangGraph / ASR / Vector DB。  
+8m. V0.3B Product Understanding：`SpeechAct → ProductQuery → Resolver`。规格只做 size/grade/origin/packing；唯一命中提升已有 SKU 节点。`confirm_gate` 不改。不建 SKU、不学 Ontology、不接 ERP、不上 Vector DB。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -1077,3 +1078,19 @@ Text → LLM Parser → SpeechAct[] → Resolver → Policy → Service
 `spec_mention` 只是语言槽，禁止映射 SKU。Prompt 只描述语言规则，禁止塞 Catalog / 客户 / 价格。
 
 冻结：Resolver、Policy、OrderService、Memory、Response、Outbox。不做 ASR / TTS / ERP / LangGraph / Vector DB。
+
+### 14.13 Product Understanding（V0.3B）
+
+目标：把规格口语落到已有商品树。不是商品智能 Agent，不让 LLM 选 SKU。
+
+```text
+SpeechAct → ProductUnderstanding → ProductQuery → Resolver → Policy → Service
+```
+
+Understanding 只归一 `size` / `grade` / `origin` / `packing`，产出无业务 id 的 `ProductQuery`。`focus_node_id` 来自 Session 已有行，不来自 LLM。Resolver 按属性过滤候选；过滤后恰 1 个 SKU 时提升 `matched_node` 到该节点，不写 `resolved_sku`。`resolved_sku` 仍只由 `Policy.fill_sku` 填写。`confirm_gate` 仍只认最终 `product_sku_id`。
+
+无规格时行为不变：王记+苹果仍歧义；李老板+苹果仍档案默认。树上没有的规格不长出新 SKU，也不替品。
+
+禁止：自动建 SKU、改 Ontology、ERP 商品库、Vector DB、LLM 返回 sku_id。
+
+冻结：Parser 主流程、Policy.confirm_gate、OrderService、Memory、Response、Outbox。

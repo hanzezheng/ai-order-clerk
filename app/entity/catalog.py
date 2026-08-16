@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 OntologyLevel = Literal["category", "variety", "cultivar", "sku"]
 
@@ -20,6 +20,12 @@ class ProductNode(BaseModel):
     status: str = "active"
 
 
+class ResolutionCandidate(BaseModel):
+    node: ProductNode
+    matched_on: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+
+
 class ProductMention(BaseModel):
     raw: str
     matched_node: ProductNode | None = None
@@ -27,8 +33,22 @@ class ProductMention(BaseModel):
     resolve_level: OntologyLevel | None = None
     confidence: float = 0.0
     candidates: list[ProductNode] = Field(default_factory=list)
+    resolution_candidates: list[ResolutionCandidate] = Field(default_factory=list)
     filled_from: str | None = None
     status: str = "resolved"
+
+
+class ProductQuery(BaseModel):
+    """行业查询。禁止 sku_id / product_id。focus_node_id 只来自 Session。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    raw: str = ""
+    lookup_text: str = ""
+    product_mention: str = ""
+    spec_mention: str | None = None
+    attributes: dict[str, str] = Field(default_factory=dict)
+    focus_node_id: UUID | None = None
 
 
 class CustomerRef(BaseModel):

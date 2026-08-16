@@ -205,9 +205,13 @@ def test_spec_mention_stays_language_slot_and_is_not_mapped_to_sku():
 
 
 def test_prompt_has_no_catalog_or_price_knowledge():
-    from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
+    from typing import get_args
 
-    assert PARSER_PROMPT_ID == "parser.v2"
+    from app.agent.llm_schema import LlmActType
+    from app.agent.prompts import PARSER_PROMPT_ID, PARSER_PROMPTS, PARSER_SYSTEM_PROMPT
+
+    assert PARSER_PROMPT_ID == "parser.v3"
+    assert "parser.v2" in PARSER_PROMPTS
 
     for needle in (
         "红富士80",
@@ -220,6 +224,10 @@ def test_prompt_has_no_catalog_or_price_knowledge():
         "Catalog",
     ):
         assert needle not in PARSER_SYSTEM_PROMPT
+
+    for act_type in get_args(LlmActType):
+        assert act_type in PARSER_SYSTEM_PROMPT
+    assert "add_item" in PARSER_SYSTEM_PROMPT
 
 
 def test_qwen_array_with_flat_slots_normalizes_without_fallback():
@@ -287,3 +295,46 @@ def test_dataset_has_at_least_20_language_cases():
         assert "customer_id" not in blob
         assert "红富士80" not in blob
         assert "王强水果店" not in blob
+
+
+def test_add_item_aliases_to_add_line_without_fallback():
+    parsed = _llm_parser(
+        {
+            "acts": [
+                {"type": "start_order", "slots": {"customer_mention": "老王"}},
+                {
+                    "type": "add_item",
+                    "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"},
+                },
+            ]
+        }
+    ).parse("开老王的单苹果60件")
+    assert parsed.fallback is False
+    assert parsed.parser_name == "llm"
+    assert [a.type for a in parsed.acts] == ["start_order", "add_line"]
+    assert parsed.acts[1].slots["product_mention"] == "苹果"
+    assert parsed.acts[1].slots["qty"] == 60
+
+
+def test_set_spec_aliases_to_refine_spec():
+    parsed = parse_llm_output(
+        {"acts": [{"type": "set_spec", "slots": {"spec_mention": "八零果"}}]}
+    )
+    assert parsed.acts[0].type == "refine_spec"
+    assert parsed.acts[0].slots.spec_mention == "八零果"
+
+
+def test_invented_type_still_falls_back():
+    parsed = _llm_parser(
+        {"acts": [{"type": "explode_order", "slots": {"customer_mention": "老王"}}]}
+    ).parse("开老王的单")
+    assert parsed.fallback is True
+    assert parsed.parser_name == "rule"
+    assert parsed.fallback_reason == "schema_validation_error"
+
+
+def test_done_is_not_aliased_to_confirm():
+    parsed = _llm_parser({"acts": [{"type": "done", "slots": {}}]}).parse("好了")
+    assert parsed.fallback is True
+    assert parsed.acts[0].type == "confirm_order"
+    assert parsed.parser_name == "rule"

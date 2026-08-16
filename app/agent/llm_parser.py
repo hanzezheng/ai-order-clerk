@@ -17,6 +17,28 @@ from app.entity.speech import TurnParse
 _ADAPTER = TypeAdapter(LlmTurnParse)
 _LANGUAGE_SLOT_KEYS = frozenset(LlmActSlots.model_fields)
 
+# 语言层封闭同义词 → 领域 type。不是新 SpeechAct，不映射 confirm。
+LLM_ACT_TYPE_ALIASES: dict[str, str] = {
+    "add_item": "add_line",
+    "add_product": "add_line",
+    "add_goods": "add_line",
+    "insert_item": "add_line",
+    "set_item": "set_line",
+    "update_item": "set_line",
+    "update_line": "set_line",
+    "create_order": "start_order",
+    "open_order": "start_order",
+    "new_order": "start_order",
+    "delete_item": "remove_line",
+    "drop_item": "remove_line",
+    "delete_line": "remove_line",
+    "set_spec": "refine_spec",
+    "update_spec": "refine_spec",
+    "specify": "refine_spec",
+    "add_spec": "refine_spec",
+    "old_price": "use_old_price",
+}
+
 
 class LlmParseError(Exception):
     def __init__(self, reason: str) -> None:
@@ -37,7 +59,7 @@ def _strip_fences(raw: str) -> str:
 
 
 def normalize_llm_shape(payload: Any) -> Any:
-    """机械形状归一。不猜 SKU / 客户，不放宽业务字段。"""
+    """机械形状归一：根数组、语言槽位置、封闭 type 同义词。不猜 SKU / 客户，不放宽业务字段。"""
     if isinstance(payload, list):
         payload = {"acts": payload}
     if not isinstance(payload, dict):
@@ -51,6 +73,11 @@ def normalize_llm_shape(payload: Any) -> Any:
             normalized_acts.append(item)
             continue
         act = dict(item)
+        raw_type = act.get("type")
+        if isinstance(raw_type, str):
+            mapped = LLM_ACT_TYPE_ALIASES.get(raw_type.strip().lower())
+            if mapped:
+                act["type"] = mapped
         slots = act.get("slots")
         lifted = dict(slots) if isinstance(slots, dict) else {}
         for key in list(act.keys()):

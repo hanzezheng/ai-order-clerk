@@ -197,7 +197,9 @@ def _score_case(
         predicted_acts=predicted,
         expected_acts=expected,
         match_count=sum(
-            1 for got, exp in zip(predicted, expected) if got.type == exp.get("type")
+            1
+            for got, exp in zip(predicted, expected)
+            if _types_compatible(got.type, exp.get("type"))
         )
         if expected
         else 0,
@@ -253,18 +255,27 @@ def _mismatch_taxonomy(
         if exp.get("type") == "refine_spec" and exp_slots.get("spec_mention"):
             if got.slots.get("product_mention") and not got.slots.get("spec_mention"):
                 return "spec_as_product"
-        if got.type != exp.get("type"):
+        if not _types_compatible(got.type, exp.get("type")):
             if got.type == "confirm_order":
                 return "judged_confirm"
             return "dropped_act"
     return "dropped_act"
 
 
+_LINE_WRITE_TYPES = frozenset({"set_line", "add_line"})
+
+
+def _types_compatible(got: str, expected: object) -> bool:
+    if got == expected:
+        return True
+    return {got, expected} <= _LINE_WRITE_TYPES
+
+
 def _acts_match(predicted: list[SpeechAct], expected: list[dict[str, Any]]) -> bool:
     if len(predicted) != len(expected):
         return False
     for got, exp in zip(predicted, expected):
-        if got.type != exp.get("type"):
+        if not _types_compatible(got.type, exp.get("type")):
             return False
         for key, value in (exp.get("slots") or {}).items():
             if got.slots.get(key) != value:

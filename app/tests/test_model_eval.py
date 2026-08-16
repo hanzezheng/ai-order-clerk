@@ -19,14 +19,16 @@ from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 
 
-def test_prompt_id_is_pinned_v2():
-    assert PARSER_PROMPT_ID == "parser.v2"
-    assert LLMTurnParser.prompt_id == "parser.v2"
+def test_prompt_id_is_pinned_v3():
+    assert PARSER_PROMPT_ID == "parser.v3"
+    assert LLMTurnParser.prompt_id == "parser.v3"
     assert "不要选择 SKU" in PARSER_SYSTEM_PROMPT
     assert "不要写记忆" in PARSER_SYSTEM_PROMPT
     assert "不要判断能否确认" in PARSER_SYSTEM_PROMPT
     assert '{"acts": [ ... ]}' in PARSER_SYSTEM_PROMPT or '"acts"' in PARSER_SYSTEM_PROMPT
     assert "禁止与 type 同级摊开" in PARSER_SYSTEM_PROMPT
+    assert "禁止 add_item" in PARSER_SYSTEM_PROMPT
+    assert "refine_spec" in PARSER_SYSTEM_PROMPT
 
 
 def test_qwen_flat_array_counts_as_model_pass_not_fallback():
@@ -72,7 +74,7 @@ def test_fake_dataset_is_unscored_and_has_required_report_fields():
     assert report.scored is False
     assert report.mode == "fake"
     assert report.model == "fake"
-    assert report.prompt_id == "parser.v2"
+    assert report.prompt_id == "parser.v3"
     assert report.veto is False
     assert report.stall_oral_pass_rate == 1.0
     blob = report_to_json(report)
@@ -260,3 +262,56 @@ def test_default_pytest_does_not_enable_live(monkeypatch):
     monkeypatch.delenv("RUN_LIVE_LLM", raising=False)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     assert live_llm_enabled() is False
+
+
+def test_add_item_on_open_order_counts_as_model_pass():
+    case = ParserEvaluationCase(
+        id="open-wang-apple",
+        text="开老王的单苹果60件",
+        expected_acts=[
+            {"type": "start_order", "slots": {"customer_mention": "老王"}},
+            {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
+        ],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(
+            default={
+                "acts": [
+                    {"type": "start_order", "slots": {"customer_mention": "老王"}},
+                    {
+                        "type": "add_item",
+                        "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"},
+                    },
+                ]
+            }
+        )
+    )
+    report = LanguageBenchmark().evaluate(
+        [case], parser, mode="live", model="qwen-probe", capture=capture
+    )
+    row = report.records[0]
+    assert row.fallback is False
+    assert row.parser_name == "llm"
+    assert row.model_pass is True
+    assert row.severity == "pass"
+    assert row.predicted_acts[1].type == "add_line"
+
+
+def test_set_spec_on_oral_spec_counts_as_model_pass():
+    case = ParserEvaluationCase(
+        id="must-not-expand-sku-name",
+        tag="must_not_guess",
+        text="八零果",
+        expected_acts=[{"type": "refine_spec", "slots": {"spec_mention": "八零果"}}],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(default={"acts": [{"type": "set_spec", "slots": {"spec_mention": "八零果"}}]})
+    )
+    report = LanguageBenchmark().evaluate(
+        [case], parser, mode="live", model="qwen-probe", capture=capture
+    )
+    row = report.records[0]
+    assert row.fallback is False
+    assert row.model_pass is True
+    assert row.l0_violated is False
+    assert row.predicted_acts[0].type == "refine_spec"

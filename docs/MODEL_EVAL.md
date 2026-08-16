@@ -77,13 +77,13 @@ Qwen 与 GPT **分别出报告**，不合成「平均分」。准入是「名单
 RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 ```
 
-产物默认 `docs/eval/runs/<utc>-<model>-parser.v5.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
+产物默认 `docs/eval/runs/<utc>-<model>-parser.v6.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
 
 运行切片：
 
 1. **L1 live**：`sales_parser_cases.json` 逐条 `parse(text)`。记录 `parser_name` / `fallback` / `fallback_reason`。
 2. **L0 live**：每条预测的领域对象跑 S1–S6 能静态检查的项（无业务 id、无编造行情数字）；链路项在 L4 查。
-3. **L4 live**：G1–G4 金脚本用**真 Parser** 驱动同一 `SalesSessionRunner`（Understanding / Resolver / Policy 均现网实现，冻结不改）。入口：`python3 -m app.agent.runtime_admission`（无密钥走 Fake；live 须 `RUN_LIVE_LLM=1`）。细则 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)。qwen3.7-plus + parser.v4 结论 **C**（仅 G1 规格落行失败）。parser.v5 只改语言契约：句中货名+规格必须同槽 `product_mention`+`spec_mention`。未得 A 不上语音。
+3. **L4 live**：G1–G4 金脚本用**真 Parser** 驱动同一 `SalesSessionRunner`（Understanding / Resolver / Policy 均现网实现，冻结不改）。入口：`python3 -m app.agent.runtime_admission`（无密钥走 Fake；live 须 `RUN_LIVE_LLM=1`）。细则 [RUNTIME_ADMISSION.md](RUNTIME_ADMISSION.md)。qwen3.7-plus + parser.v4 结论 **C**。parser.v6 用语言结构 few-shot 修多行货名+规格归属，不改闸门。未得 A 不上语音。
 4. **稳定性**：`stall_oral` 与 G1 全文各重复 **3** 次。三次草稿快照或 L1 acts 不一致记 `unstable`。
 
 输出一份 `EvaluationReport`（扩现有 `ParserEvaluationReport`）：`scored=true` 仅在 `live` 模式。Fake / unconfigured 保持 `scored=false`。
@@ -124,7 +124,7 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 
 | 规则 | 说明 |
 | --- | --- |
-| `prompt_id` | 形如 `parser.v5`。Runtime 与 live 评测必须用同一 id |
+| `prompt_id` | 形如 `parser.v6`。Runtime 与 live 评测必须用同一 id |
 | 钉死内容 | 系统提示全文 + Schema 字段名。改字即升版本 |
 | 禁止写入 | Catalog 名、客户名、价格、SKU 全称、档案默认、草稿 |
 | 变更流程 | 先加 `parser.vN` 文本 → live 评测对比 vN-1 → 达标再切换 Runtime 指针 |
@@ -135,7 +135,8 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 `parser.v2` = v1 + 强制 `{"acts":[{"type","slots"}]}`，禁止顶层数组、禁止槽位与 type 同级摊开。  
 `parser.v3` = v2 + 列出允许的 `type` 枚举（禁止 `add_item` 等自造名）+ 规格口语必须 `refine_spec`/`spec_mention`。  
 `parser.v4` = v3 + 量词 uom、「再加N件」为 `set_qty mode=add`、货名指代用 `product_mention`、光杆「那个X」为 `unknown`。  
-`parser.v5` = v4 + 句中货名+规格必须同时输出 `product_mention` 与 `spec_mention`；只有规格时仍允许光杆 `spec_mention`。当前 Runtime pin 为 `parser.v5`。仍禁止加商品库、禁止 `line_id`。
+`parser.v5` = v4 + 句中货名+规格必须同时输出 `product_mention` 与 `spec_mention`；只有规格时仍允许光杆 `spec_mention`。  
+`parser.v6` = v5 + 语言结构 few-shot（梨/金边/老李等，不塞 Catalog）。当前 Runtime pin 为 `parser.v6`。仍禁止加商品库、禁止 `line_id`。v1–v5 文本保留。
 
 Schema 前的语言层归一（仍不是领域放宽）：
 

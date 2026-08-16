@@ -112,6 +112,7 @@ Policy 是业务安全边界。**LLM 不能替代 Policy。**
 - PostgreSQL Persistence
 - Durable Outbox
 - Voice Adapter（Input Adapter：ASR final → turns → TTS 念 `reply_text`）
+- ERPNext Adapter（Outbox `order.confirmed` → Draft Sales Order）
 
 ---
 
@@ -157,7 +158,7 @@ Policy 是业务安全边界。**LLM 不能替代 Policy。**
 
 ## 5. ERPNext 关系
 
-未来接 ERPNext。
+V0.5 已接：已确认销售事实经 Outbox 进入 ERPNext Draft Sales Order。
 
 正确：
 
@@ -173,21 +174,21 @@ OrderService → 直接调用 ERP API
 
 AI Runtime **不依赖** ERPNext 表结构。
 
-当前阶段：**不做 ERP**。Adapter 尚未落地；Outbox 已为它留口。
+V0.5 Adapter（[V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)）：只消费 `order.confirmed`，写 Draft Sales Order。实现不得进入 Parser / Policy / OrderService / Memory。当前仍不把 ERP 逻辑塞进 Runtime，不做库存/支付/财务。
 
 ---
 
 ## 6. 当前阶段
 
-当前不是做 ERP。
+当前不是把 ERP 逻辑放进 Runtime。
 
 当前不是做多 Agent。
 
 当前不是做平台。
 
-当前目标：打造一个可靠的行业 AI 员工。
+当前目标：打造一个可靠的行业 AI 员工。第一个员工：农批 AI 开单员。
 
-第一个员工：农批 AI 开单员。
+V0.5 已增加 ERPNext Adapter 层；开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 
 ---
 
@@ -217,13 +218,13 @@ AI Runtime **不依赖** ERPNext 表结构。
 评审六问：见 §7。
 ```
 
-示例（V0.4 Voice Adapter）：
+示例（V0.5 ERPNext Adapter）：
 
 ```text
 当前遵守 docs/AI_EMPLOYEE_ARCHITECTURE.md。
-本 Sprint 只允许修改：Input Adapter。
+本 Sprint 只允许修改：ERPNext Adapter。
 禁止修改：Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate /
-         OrderService / Memory / Response / Outbox。
+         OrderService / Memory。
 ```
 
 这样避免：局部功能不断增加，整体架构方向慢慢漂移。

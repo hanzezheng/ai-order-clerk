@@ -21,7 +21,7 @@
 Agent → Tool → Service → Repository → Database
 ```
 
-接 ERP 只能：`Domain Event → Outbox → ERPNext Adapter`。禁止 Domain Service 直调 ERP API。当前不做 ERP。
+接 ERP 只能：`Domain Event → Outbox → ERPNext Adapter`。禁止 Domain Service 直调 ERP API。Runtime 不读 ERP 表，ERP 失败不得改确认结果。
 
 ## 上下文与记忆
 

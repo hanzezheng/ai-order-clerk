@@ -20,7 +20,8 @@
 | [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) | V0.3C 农批语言分层评测、商品理解缺口、复杂订单金脚本、V0.4 准入 |
 | [MODEL_EVAL.md](MODEL_EVAL.md) | V0.3D 真模型评测：接入、运行、Fake 对照、Prompt 版本、指标与失败记录 |
 | [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md) | V0.4 Voice Adapter：架构、ASR/TTS 边界、PTT 状态机、turns 字段策略、Text/Voice 等价、真机脚本 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md) |
+| [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Adapter：边界、Outbox 映射、Customer/Item/SO、Runtime vs ERP 事实、防腐 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -875,10 +876,11 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8n. V0.3C 农批语言能力：分层 Benchmark + 复杂订单金脚本；量缺口不新做 Agent。`confirm_gate` 不改。不上 ASR / ERP / Vector DB，不自动建 SKU。准入见 [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md)。  
 8o. V0.3D 真模型评测：同一 `LLMTurnParser` 入口跑 live；Qwen/GPT 只换兼容端点。默认 CI 不发请求。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。见 [MODEL_EVAL.md](MODEL_EVAL.md)。  
 8p. V0.4 Voice Adapter：ASR final → 现有 turns → TTS 念 `reply_text`。不改 Parser / Understanding / Resolver / Policy / Confirm Gate / OrderService / Memory / Response。见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。  
+8q. V0.5 ERPNext Adapter：Outbox `order.confirmed` → Customer / Item / Draft Sales Order。不改闸门，不扣库存，不收款。见 [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
-12. ERP Adapter（阶段 2，另批），不推翻开单图  
+12. 库存 / 付款 Adapter（另批）：仍只订阅事件，不进 SalesSession  
 
 ---
 
@@ -1148,3 +1150,19 @@ Adapter 在 `TurnIntake` 之外：`app/voice/`（AsrPort、TtsPort、VoiceContro
 禁止：改 Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory / Response；partial 进 Runner；TTS 第二张嘴；ERP；多 Agent。
 
 冻结：上列内核。允许新增壳模块与 Fake ASR/TTS 测试。
+
+### 14.17 ERPNext Adapter（V0.5）
+
+目标：已确认销售事实进入 ERPNext。不是把 ERP 做成开单员，不改闸门。
+
+```text
+order.confirmed → Outbox → ERPNext Adapter → Customer / Item / Draft Sales Order
+```
+
+Adapter 是新的 Outbox consumer（`app/erpnext/`）。读已确认 Session 快照做翻译。禁止 `OrderService` 调 ERP API。禁止 `item_code` 进入 Parser / OrderLine / Catalog。SO 保持 Draft：不 submit、不扣库存、不开票、不收款。TBD 价用现网 `prices_incomplete`，不改 `confirm_gate`。CI 默认 `FakeErpGateway`；`ERPNEXT_URL` 才连真站。
+
+细则 [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)、[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)。
+
+禁止：改 Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory；ERP 驱动 AI；库存；支付；财务过账。
+
+冻结：上列内核。允许新增 `app/erpnext/` 与 Fake Gateway。

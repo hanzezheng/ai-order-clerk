@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1033,3 +1033,13 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
 冻结：Parser、Resolver 主流程、Policy、OrderService、Response、Memory 规则（Extractor 决策 / 阈值 / 负向债务语义）。
 
 不做：ERP、库存、支付、登录、多租户、向量库。PostgreSQL 实现见 10B。
+
+### 14.10 PostgreSQL（Sprint 10B）
+
+同一套 Port 的可重启实现，只存在 `app/database/postgres/`。Entity 仍是领域契约。`DATABASE_URL` 有则启用，无则内存。
+
+`SalesSession` 工作态 JSONB 快照；订单继续 `save(session)` + `save_draft` 双写。种子与 migration 分开；稳定 UUID upsert，禁止覆盖已学习档案。
+
+Kill & Restart：新进程 / 新 `AppWorld` 连同一库后，客户、Evidence、Workbench、未完成 Session 仍在。已确认 turns 仍 `409`。禁止重放事件流恢复 Evidence。
+
+冻结：Parser、Resolver 主流程、Policy、OrderService、Response、Memory 规则。

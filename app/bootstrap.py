@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 from sqlalchemy.engine import Engine
 
+from app.agent.default_parser import build_default_parser
 from app.agent.parser import TurnParser
-from app.agent.turn_parser import RuleTurnParser
 from app.database.bundle import PersistenceBundle
 from app.database.memory import (
     InMemoryCatalog,
@@ -110,7 +110,7 @@ def assemble_world(
     order_service = OrderService(bundle.orders, ontology, dispatcher)
     policy = DecisionPolicy(ontology)
     runner = SalesSessionRunner(
-        parser=parser or RuleTurnParser(),
+        parser=parser or build_default_parser(),
         policy=policy,
         customers=customers,
         ontology=ontology,

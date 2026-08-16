@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from app.agent.evaluation import ParserEvaluationRecord, ParserEvaluationReport
-from app.agent.llm_client import FakeLlmClient
+from app.agent.llm_client import FakeLlmClient, UnconfiguredLlmClient, client_from_env
 from app.agent.llm_convert import llm_turn_to_domain
 from app.agent.llm_parser import LLMTurnParser
 from app.agent.llm_schema import LlmTurnParse
@@ -178,12 +178,64 @@ def test_parser_evaluation_structures_are_unscored():
     assert report.records[0].match_count is None
 
 
+def test_client_from_env_without_key_is_unconfigured(monkeypatch):
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    client = client_from_env()
+    assert client.available() is False
+
+
+def test_unconfigured_client_skips_llm_without_failure_flag():
+    parsed = LLMTurnParser(client=UnconfiguredLlmClient(), fallback=RuleTurnParser()).parse("苹果60件")
+    assert parsed.parser_name == "rule"
+    assert parsed.fallback is False
+    assert parsed.fallback_reason == "llm_unconfigured"
+    assert parsed.acts[0].type == "set_line"
+
+
+def test_spec_mention_stays_language_slot_and_is_not_mapped_to_sku():
+    llm = LlmTurnParse.model_validate(
+        {"acts": [{"type": "refine_spec", "slots": {"spec_mention": "八零果"}}]}
+    )
+    domain = llm_turn_to_domain(llm, raw_text="八零果")
+    assert domain.acts[0].type == "refine_spec"
+    assert domain.acts[0].slots == {"spec_mention": "八零果"}
+    assert "product_mention" not in domain.acts[0].slots
+    assert "sku_id" not in domain.acts[0].slots
+    assert "product_id" not in domain.acts[0].slots
+
+
+def test_prompt_has_no_catalog_or_price_knowledge():
+    from app.agent.prompts import PARSER_SYSTEM_PROMPT
+
+    for needle in (
+        "红富士80",
+        "烟台箱装",
+        "李记果行",
+        "王强水果店",
+        "皇冠梨",
+        "product_defaults",
+        "last_deal",
+        "Catalog",
+    ):
+        assert needle not in PARSER_SYSTEM_PROMPT
+
+
+def test_json_fences_are_stripped_before_schema():
+    parsed = _llm_parser('```json\n{"acts": [{"type": "confirm_order", "slots": {}}]}\n```').parse("好了")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "confirm_order"
+
+
 def test_dataset_has_at_least_20_language_cases():
     path = Path(__file__).resolve().parents[2] / "docs/dataset/sales_parser_cases.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert len(payload["cases"]) >= 20
+    assert len(payload["cases"]) >= 35
+    stall = [case for case in payload["cases"] if case.get("tag") == "stall_oral"]
+    assert len(stall) >= 12
     for case in payload["cases"]:
         blob = json.dumps(case["expected_acts"], ensure_ascii=False)
         assert "sku_id" not in blob
         assert "product_id" not in blob
+        assert "customer_id" not in blob
         assert "红富士80" not in blob
+        assert "王强水果店" not in blob

@@ -24,7 +24,7 @@
 
 ## 与 Policy 的关系
 
-LLM：理解语言（SpeechAct）。  
+LLM：默认语言入口，只抽 `SpeechAct[]`。禁止选客户、选 SKU、定价、写 Memory、判断确认。无模型时走规则 Parser，不得因此改闸门。  
 Policy：是否询问、是否自动执行、是否确认。  
 Response：只把 `ReplyPlan` 说成口播；不得否决 `DecisionVerdict`，不得读业务库补事实。  
 Agent 不得否决 `DecisionVerdict`。

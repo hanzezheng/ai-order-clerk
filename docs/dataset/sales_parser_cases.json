@@ -165,10 +165,145 @@
     },
     {
       "id": "cancel",
+      "tag": "canonical",
       "text": "这单作废",
       "expected_acts": [
         {"type": "cancel_order", "slots": {}}
       ]
+    },
+    {
+      "id": "spec-80",
+      "tag": "stall_oral",
+      "text": "八零果",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "八零果"}}
+      ],
+      "notes": "规格口语，禁止映射 SKU"
+    },
+    {
+      "id": "spec-eighty",
+      "tag": "stall_oral",
+      "text": "八十果",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "八十果"}}
+      ]
+    },
+    {
+      "id": "spec-80-hash",
+      "tag": "stall_oral",
+      "text": "80#",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "80#"}}
+      ]
+    },
+    {
+      "id": "spec-tonghuo",
+      "tag": "stall_oral",
+      "text": "统货",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "统货"}}
+      ]
+    },
+    {
+      "id": "spec-box",
+      "tag": "stall_oral",
+      "text": "箱装",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "箱装"}}
+      ]
+    },
+    {
+      "id": "apple-eighty-sixty",
+      "tag": "stall_oral",
+      "text": "苹果八十果六十件",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
+        {"type": "refine_spec", "slots": {"spec_mention": "八十果"}}
+      ]
+    },
+    {
+      "id": "old-price",
+      "tag": "stall_oral",
+      "text": "老价格",
+      "expected_acts": [
+        {"type": "use_old_price", "slots": {}}
+      ],
+      "notes": "只抽语言类型，禁止编单价"
+    },
+    {
+      "id": "old-price-previous",
+      "tag": "stall_oral",
+      "text": "还是以前那个价",
+      "expected_acts": [
+        {"type": "use_old_price", "slots": {}}
+      ]
+    },
+    {
+      "id": "that-red-add",
+      "tag": "stall_oral",
+      "text": "那个红的再来两件",
+      "expected_acts": [
+        {"type": "add_line", "slots": {"product_mention": "那个红的", "qty": 2, "uom": "件"}}
+      ],
+      "notes": "禁止猜品种或 SKU"
+    },
+    {
+      "id": "give-me-pear",
+      "tag": "stall_oral",
+      "text": "给我来点梨",
+      "expected_acts": [
+        {"type": "add_line", "slots": {"product_mention": "梨"}}
+      ]
+    },
+    {
+      "id": "remove-that",
+      "tag": "stall_oral",
+      "text": "那个不要了",
+      "expected_acts": [
+        {"type": "remove_line", "slots": {"product_mention": "那个"}}
+      ]
+    },
+    {
+      "id": "approx-sixty-plain",
+      "tag": "stall_oral",
+      "text": "苹果大概六十件",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}}
+      ]
+    },
+    {
+      "id": "grade-oral",
+      "tag": "stall_oral",
+      "text": "一级",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "一级"}}
+      ]
+    },
+    {
+      "id": "origin-oral",
+      "tag": "stall_oral",
+      "text": "烟台的",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "烟台的"}}
+      ],
+      "notes": "不要补全规格全称"
+    },
+    {
+      "id": "confirm-jie-le",
+      "tag": "stall_oral",
+      "text": "结了",
+      "expected_acts": [
+        {"type": "confirm_order", "slots": {}}
+      ]
+    },
+    {
+      "id": "must-not-expand-sku-name",
+      "tag": "must_not_guess",
+      "text": "八零果",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"spec_mention": "八零果"}}
+      ],
+      "notes": "期望里禁止出现 SKU 全称"
     }
   ]
 }

@@ -15,7 +15,8 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md) |
+| [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) | V0.3C 农批语言分层评测、商品理解缺口、复杂订单金脚本、V0.4 准入 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -867,6 +868,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8k. Sprint 11 Durable Event Boundary：同库最小 Outbox；Memory/Timeline 消费 pending；事务 A/B。不建设消息平台，不接 ERP。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
 8l. V0.3A LLM Language Runtime：`LLMTurnParser` 为默认语言入口；双层 Schema；无配置时直接规则解析且行为与 v0.2 一致。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。不上 LangGraph / ASR / Vector DB。  
 8m. V0.3B Product Understanding：`SpeechAct → ProductQuery → Resolver`。规格只做 size/grade/origin/packing；唯一命中提升已有 SKU 节点。`confirm_gate` 不改。不建 SKU、不学 Ontology、不接 ERP、不上 Vector DB。  
+8n. V0.3C 农批语言能力：分层 Benchmark + 复杂订单金脚本；量缺口不新做 Agent。`confirm_gate` 不改。不上 ASR / ERP / Vector DB，不自动建 SKU。准入见 [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md)。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -1094,3 +1096,19 @@ Understanding 只归一 `size` / `grade` / `origin` / `packing`，产出无业�
 禁止：自动建 SKU、改 Ontology、ERP 商品库、Vector DB、LLM 返回 sku_id。
 
 冻结：Parser 主流程、Policy.confirm_gate、OrderService、Memory、Response、Outbox。
+
+### 14.14 农批语言能力（V0.3C）
+
+目标：证明档口话能在现有流水线上开完复杂单。不是商品 Agent，不是语音。
+
+```text
+L0 安全 → L1 SpeechAct → L2 ProductQuery → L3 候选 → L4 订单金脚本 → L5 口播义务
+```
+
+评测分层，禁止混层：Parser 期望不得含 sku_id；链路断言草稿与闸门，不用口播代替 SKU。`focus` 仍来自 Session：光杆规格打最后一行，改指定行必须带品名。
+
+V0.4 前必须：L0 全绿；G1–G4 金脚本绿；四属性独立 + 两键合取；苹果+红富士 / 苹果+规格 合行；连报一行 hold 不丢其他行；`confirm_gate` 零漂移。细则 [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md)、[ADR-018](ADR/ADR-018-language-capability-benchmark.md)。
+
+禁止：ASR / TTS / ERP / Vector DB / 自动建 SKU / 改 confirm_gate / LLM 选 SKU。
+
+冻结：Policy.confirm_gate、OrderService、Memory、Response、Outbox。允许扩评测集、评测种子节点、规格同义词典（只映射已有属性）。

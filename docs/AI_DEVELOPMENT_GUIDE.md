@@ -10,7 +10,11 @@
 
 你的任务不是快速写代码，而是在保持长期架构正确的前提下推进项目。
 
-第一次正式开发、以及后续任何重大功能开发，先读本文件与 `docs/DESIGN.md`。
+第一次正式开发、以及后续任何重大功能开发，先读：
+
+1. `docs/AI_EMPLOYEE_ARCHITECTURE.md`（最高架构约束）
+2. 本文件
+3. `docs/DESIGN.md`（农批开单员产品细则）
 
 ---
 
@@ -22,22 +26,18 @@
 
 目标：
 
-构建一个 Voice-first 行业 AI Agent。
-
-当前垂直领域：
-
-农产品批发市场。
+构建一个基于 ERPNext 的 AI 原生员工层。当前第一个员工：农产品批发市场的 AI 开单员。
 
 产品不是：
 
-- ERP
-- CRM
+- ERP 页面上的聊天框
+- 把 ERP 逻辑塞进 Runtime 的订单系统
 - 聊天机器人
 - 表单录入工具
 
 产品是：
 
-一个懂业务上下文的 AI 开单员。
+自然语言业务执行层上的行业 AI 员工。
 
 老板不是操作软件。
 
@@ -246,31 +246,26 @@ Domain → Service → Policy → Persistence
 
 ---
 
-# 九、当前 Sprint
+# 九、Sprint 开场（强制）
 
-当前只实现：AI 开单员核心业务内核。
+禁止只说「做 Sprint X」。
 
-禁止：前端、App、ERPNext、ASR、微信、支付、库存扣减。
+每个 Sprint / PR 开头必须写：
 
-当前目标：纯 Python 实现连续订单理解。
+```text
+当前遵守 docs/AI_EMPLOYEE_ARCHITECTURE.md。
+本 Sprint 只允许修改：<层名>。
+禁止修改：<冻结层列表>。
+评审六问：见架构文 §7。
+```
 
-必须完成：
+当前阶段：不是做 ERP、不是做多 Agent、不是做平台。目标是可靠的农批 AI 开单员。
 
-## 1. SpeechAct
+不确定一层归属时，优先冻结 Runtime。
 
-支持：`start_order`、`add_line`、`set_line`、`remove_line`、`replace_product`、`refine_spec`、`set_qty`、`set_price`、`confirm_order`。
+完成后仍须输出：修改文件、设计影响、测试结果、后续风险。
 
-## 2. TurnParse
-
-一段话多个动作。例如「苹果60件梨60件加两个金边榴莲」必须解析成 `SpeechAct[]`。
-
-## 3. OrderSession
-
-支持：新增商品、修改商品、删除商品、规格补充、价格状态。
-
-## 4. DecisionPolicy
-
-实现什么时候：自动执行、延迟询问、必须阻断。
+内核能力（SpeechAct、TurnParse、SalesSession、DecisionPolicy）已在 Runtime 中；回归见下一节测试场景，不作为「再做一个内核」的借口去改冻结层。
 
 ---
 
@@ -322,22 +317,22 @@ Domain → Service → Policy → Persistence
 
 流程：
 
-1. 提出问题
-2. 修改 DESIGN.md
-3. 必要时新增 ADR
-4. 再实现
+1. 提出问题，并用架构文 §7 六问归层
+2. 若动分层 / LLM 权限 / Policy / Memory / ERP 边界：先改 `docs/AI_EMPLOYEE_ARCHITECTURE.md`
+3. 若动农批开单细则：改 `docs/DESIGN.md`
+4. 必要时新增 ADR
+5. 再实现；Sprint 开头仍须声明只改哪一层
 
 ---
 
-# 十三、当前任务
+# 十三、接到任务时
 
-Sprint 1：实现 AI 农批开单员核心领域模型。
+不要只复述「做 Sprint X」。先输出：
 
-第一步：不要写代码。先输出：
+```text
+当前遵守 docs/AI_EMPLOYEE_ARCHITECTURE.md。
+本 Sprint 只允许修改：<层名>。
+禁止修改：<冻结层>。
+```
 
-1. 当前理解
-2. 实现计划
-3. 文件修改计划
-4. 测试计划
-
-等待确认后再编码。
+再写：当前理解、需要澄清的问题、拟改文件、测试计划。不确定则冻结 Runtime。等待确认后再编码。

@@ -24,7 +24,8 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 | 文件 | 说明 |
 | --- | --- |
-| [docs/DESIGN.md](docs/DESIGN.md) | 最高设计依据 |
+| [docs/AI_EMPLOYEE_ARCHITECTURE.md](docs/AI_EMPLOYEE_ARCHITECTURE.md) | 最高架构约束（分层、冻结、ERP Adapter、Sprint 开场） |
+| [docs/DESIGN.md](docs/DESIGN.md) | 农批开单员产品设计细则 |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | 产品路线 |
 | [docs/DOMAIN.md](docs/DOMAIN.md) | 农批业务知识 |
 | [docs/AI_RULES.md](docs/AI_RULES.md) | Agent 行为规范 |

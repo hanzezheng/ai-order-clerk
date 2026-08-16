@@ -1,16 +1,19 @@
 ---
-description: DESIGN.md 是唯一设计依据；缺陷先改设计再改代码；架构决策必须写 ADR
+description: 架构文约束分层；DESIGN.md 是产品设计细则；缺陷先改文档再改代码
 alwaysApply: true
 ---
 
 # 设计依据与变更流程
 
-- 唯一设计依据是 `docs/DESIGN.md`。实现、重构、加字段前先读对应章节。
-- 发现设计缺陷：先改 `docs/DESIGN.md`，再改代码。禁止先写临时实现再补文档。
-- 不允许把「先跑通再说」的捷径当成长期架构（例如单意图、澄清即停图、alias 全局唯一、Agent 直连 SQL）。
-- 重要架构决策写入 `docs/adr/NNNN-kebab-title.md`（状态、上下文、决策、后果）。ADR 不得与 DESIGN.md 打架；冲突时先改 DESIGN 再改 ADR。
+- 最高架构约束是 `docs/AI_EMPLOYEE_ARCHITECTURE.md`（分层、LLM 权限、Policy/Memory、ERP Adapter）。
+- 农批开单员产品细则是 `docs/DESIGN.md`。实现、重构、加字段前先读对应章节。
+- 冲突时：先守架构分层与权限，再改 DESIGN。发现缺陷：先改文档，再改代码。
+- 每个 Sprint / PR 开头声明：遵守架构文、只允许修改哪一层。禁止只写「做 Sprint X」。
+- 不允许把「先跑通再说」的捷径当成长期架构（例如单意图、澄清即停图、alias 全局唯一、Agent 直连 SQL、OrderService 直调 ERP）。
+- 重要架构决策写入 `docs/ADR/`。ADR 不得与架构文 / DESIGN 打架；冲突时先改文档再改 ADR。
 
 ```text
 ❌ 为了 demo 把「苹果」做成扁平 SKU，DESIGN 仍写本体树
-✅ 先修订 DESIGN §6，再改 entity / ORM
+❌ 为了接 ERP 让 OrderService 直调 ERPNext API
+✅ 先修订架构文或 DESIGN，再改对应层；ERP 只经 Outbox Adapter
 ```

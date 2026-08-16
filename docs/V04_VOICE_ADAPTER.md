@@ -1,8 +1,12 @@
 # V0.4 Voice Adapter
 
+> 当前遵守 [AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md)。
+> 本 Sprint 只允许修改：**Input Adapter**。
+> 禁止修改：Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory / Response / Outbox。
+>
 > 当前版本：`v0.3-agent-intelligence`（Qwen + `parser.v6` 默认语言入口已得 Runtime Admission **A**）。
 >
-> 本文件是 V0.4 **语音壳**设计。最高依据仍是 [DESIGN.md](DESIGN.md)。决策见 [ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)。
+> 本文件是 V0.4 **语音壳**设计。产品细则见 [DESIGN.md](DESIGN.md)。决策见 [ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)。
 >
 > **只换两件事：** (1) `text` 的来源；(2) `reply_text` 的播出方式。
 >

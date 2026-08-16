@@ -1,6 +1,6 @@
 # 产品路线
 
-Voice-first 行业 AI Agent。当前垂直：农批开单员。路线服从 `docs/DESIGN.md`，阶段跨越先改 DESIGN 再写 ADR。
+Voice-first 行业 AI Agent。当前垂直：农批开单员。路线服从 `docs/AI_EMPLOYEE_ARCHITECTURE.md` 的分层与 `docs/DESIGN.md` 的产品细则。阶段跨越先改文档再写 ADR。每个 Sprint 必须声明只允许修改哪一层。
 
 ## 阶段 1：AI 开单员 POC
 

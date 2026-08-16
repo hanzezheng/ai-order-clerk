@@ -768,6 +768,7 @@ verdict + session snapshot + changed_line_ids
 6. Response Layer：ReplyPlan + 模板 Generator + 白名单 Grounder + 对话集  
 7. BusinessContext 只读投影 + Policy notice（不套价）  
 8. Sprint 6A：HTTP `POST /v1/sessions` + `POST /v1/sessions/{id}/turns`；Session Timeline（业务事件，禁止聊天记录）；Web Demo Shell（文本模拟麦）；API 契约测试。内核模块保持不动。  
+8b. Sprint 6A-UX：Demo 改为老板可理解的 Voice-first 开单员（按住说话、只读订单、开发模式）。不改内核。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -849,7 +850,7 @@ Demo 输入 / 以后 ASR
 | `SalesSession` | 仍是业务任务，不存聊天 | IM 历史 |
 | HTTP API | 新增 sessions / turns；适配层处理 `utterance_id`/`seq`/`is_final` | 不直连库、不绕过 Runner |
 | Timeline | **新增**业务事件投影 | 不保存 `user_text` |
-| Demo | **新增**单页壳：巨大输入、发送、只读草稿、口播 | 不加行表单、库存、支付、登录 |
+| Demo | 单页壳；6A-UX 改为老板可理解的 Voice-first 开单员（按住说话 / 只读订单 / 开发模式） | 不加行表单、库存、支付、登录；不改内核口播生成器 |
 | 装配 | `AppWorld` 暴露同一份 sessions / events / timeline | 旧 `build_world()` 测试入口保持 |
 
 ### 14.2 V1 冻结
@@ -865,3 +866,22 @@ Demo 输入 / 以后 ASR
 ### 14.3 Demo 验收
 
 「开李老板的单 → 苹果60件 → 好了」：确认成功，回复含「价未定」；Timeline 有 `order.started` / `order.line_upserted` / `order.confirmed`，全程无用户原话字段。
+
+### 14.4 Demo UX（Sprint 6A-UX）
+
+Demo 是给农批老板看的开单员，不是开发测试台。只改 `app/api/static/index.html` 呈现，**不改** Parser / Resolver / Policy / Memory / OrderService / Session / Response。
+
+页面：
+
+- 标题「AI开单员」；顶部只显示当前客户，未开单时显示「还没有开始开单」
+- AI 区用草稿与裁决做**老板口吻**展示（「李老板，单好了。」「价格还没定。」）。内核 `reply_text` 仍由模板生成，默认不展示，开发模式可见
+- 「本次订单」只读：客户、品名、数量、价格待定。禁止展示 id / source / confidence / policy / memory
+- Timeline、session id、commands、verdict 默认隐藏，开发模式才打开
+- 主操作是巨大「按住说话」（V1 仍用文本模拟 ASR，无真麦克风）。「好了」是辅助按钮，老板也可以直接说「好了」
+
+前端状态机（只存在 Demo，不进 Session）：
+
+```text
+IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
+                                         ↘ DONE（草稿已确认）
+```

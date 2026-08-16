@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "purpose": "parser_language_only",
   "notes": "只评 SpeechAct 语言槽。禁止期望 SKU、客户 ID、店名消歧、档案默认或行情价。",
   "cases": [
@@ -218,8 +218,17 @@
       "text": "苹果八十果六十件",
       "expected_acts": [
         {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
-        {"type": "refine_spec", "slots": {"spec_mention": "八十果"}}
+        {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "八十果"}}
       ]
+    },
+    {
+      "id": "apple-yantai-80-refine",
+      "tag": "stall_oral",
+      "text": "苹果要烟台八零果",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "烟台八零果"}}
+      ],
+      "notes": "句中有货名+规格，禁止光杆 spec_mention，禁止 sku_id / line_id"
     },
     {
       "id": "old-price",

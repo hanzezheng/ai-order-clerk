@@ -210,8 +210,9 @@ def test_prompt_has_no_catalog_or_price_knowledge():
     from app.agent.llm_schema import LlmActType
     from app.agent.prompts import PARSER_PROMPT_ID, PARSER_PROMPTS, PARSER_SYSTEM_PROMPT
 
-    assert PARSER_PROMPT_ID == "parser.v4"
-    assert "parser.v3" in PARSER_PROMPTS
+    assert PARSER_PROMPT_ID == "parser.v5"
+    assert "parser.v4" in PARSER_PROMPTS
+    assert "parser.v5" in PARSER_PROMPTS
 
     for needle in (
         "红富士80",

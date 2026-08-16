@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -149,7 +149,7 @@ AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否
 
 Sprint 6A 已落地（其余仍为目标结构）：`app/main.py`、`app/api/routers/sessions.py`、`app/session/intake.py`、`app/session/timeline.py`、`app/api/static/index.html`。V1 不提供表单加行的 orders 写接口。
 
-`TurnParser`（`parse(text) -> TurnParse`）是唯一语言入口。`RuleTurnParser` 与 `LLMTurnParser` 可互换。LLM 只抽 SpeechAct；失败必须 fallback 到规则 Parser，并保留 `parser_name` / `fallback` / `fallback_reason`。LLM 输出 Schema 经转换层才变成领域 `SpeechAct`。禁止依赖 LLM 才能开单。
+`TurnParser`（`parse(text) -> TurnParse`）是唯一语言入口。默认装配是 `LLMTurnParser`（V0.3A / [ADR-016](ADR/ADR-016-llm-default-parser.md)）。LLM 只抽 SpeechAct；有配置则先走模型，失败整回合 fallback 到规则 Parser。无配置不发请求，外壳直接规则解析（`fallback=false`，`fallback_reason=llm_unconfigured`），行为与 v0.2 一致。保留 `parser_name` / `fallback` / `fallback_reason`。LLM 输出 Schema 经转换层才变成领域 `SpeechAct`。禁止依赖 LLM 才能开单。禁止 LLM 选客户、选 SKU、定价、写 Memory、判断 Confirm。
 
 `RuleTurnParser` 只做「文本 → SpeechAct」：动词、数量、单位、改口标记。禁止依赖商品本体、客户、价格或别名表。
 
@@ -809,7 +809,7 @@ order.confirmed（Domain Event）
   → Storage
 ```
 
-LLM **不得**参与 Memory 写入决策。`LLMTurnParser` 仍只是可替换语言入口（Sprint 3），失败回退规则 Parser。默认装配仍是规则 Parser。
+LLM **不得**参与 Memory 写入决策。`LLMTurnParser` 是默认语言入口（V0.3A）；失败或未配置回退规则 Parser。Memory 路径不读 `parser_name`。
 
 `memory.preference_adjusted` payload **只**含：
 
@@ -865,6 +865,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8i. Sprint 10A Persistence Ports：补齐 Catalog write / Alias / PriceMemory / Evidence / Timeline / Workbench / ProcessedEvent / IntakeReceipt。业务层禁止依赖 InMemory。行为完全一致。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
 8j. Sprint 10B PostgreSQL：同一套 Port 的可重启实现，只存在 database 层。Kill & Restart 后客户、Evidence、Workbench、未完成 Session 仍在。  
 8k. Sprint 11 Durable Event Boundary：同库最小 Outbox；Memory/Timeline 消费 pending；事务 A/B。不建设消息平台，不接 ERP。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
+8l. V0.3A LLM Language Runtime：`LLMTurnParser` 为默认语言入口；双层 Schema；无配置时直接规则解析且行为与 v0.2 一致。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。不上 LangGraph / ASR / Vector DB。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -1062,3 +1063,17 @@ Kill & Restart：新进程 / 新 `AppWorld` 连同一库后，客户、Evidence�
 `EventDispatcher` 在装配层：业务只 `publish`。Memory / Timeline 消费 Outbox。`processed_events` 仍按 consumer 隔离。Evidence 仍禁止用历史事件 replay 重建。
 
 冻结：Parser、Resolver 主流程、Policy、OrderService、Response、Memory 规则。
+
+### 14.12 LLM Language Runtime（V0.3A）
+
+目标：提升语言理解。只替换语言入口，不改业务裁决，不增加基础设施。
+
+```text
+Text → LLM Parser → SpeechAct[] → Resolver → Policy → Service
+```
+
+有 `LLM_API_KEY`：先 LLM，失败整回合规则兜底。无配置：`LLMTurnParser` 外壳不发请求，直接规则解析，与 v0.2 同行为。
+
+`spec_mention` 只是语言槽，禁止映射 SKU。Prompt 只描述语言规则，禁止塞 Catalog / 客户 / 价格。
+
+冻结：Resolver、Policy、OrderService、Memory、Response、Outbox。不做 ASR / TTS / ERP / LangGraph / Vector DB。

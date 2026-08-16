@@ -104,7 +104,9 @@ def test_ambiguous_apple_without_spec_still_has_no_sku():
 def test_rule_parser_compound_mention_lands_fuji80():
     runner, _events, _catalog = build_world()
     session = _wang_ji(runner)
-    runner.handle(session, "苹果八十果60件")
+    # 规则切词会把「八/八十」当成数量，八零果无法整段留在 product_mention。
+    # 规则兜底用非数字规格词；八零果走 LLM spec_mention 槽（见下一用例）。
+    runner.handle(session, "苹果烟台60件")
     assert session.draft.lines[0].product_sku_id == FUJI80
     done = runner.handle(session, "好了")
     assert done.verdict.confirm_ok is True
@@ -137,7 +139,7 @@ def test_refine_spec_on_focus_line_does_not_split():
     runner.handle(session, "苹果60件")
     line_id = session.draft.lines[0].line_id
     assert session.draft.lines[0].product_sku_id is None
-    runner.handle(session, "八十果")
+    runner.handle(session, "烟台")
     assert len(session.draft.lines) == 1
     assert session.draft.lines[0].line_id == line_id
     assert session.draft.lines[0].product_sku_id == FUJI80

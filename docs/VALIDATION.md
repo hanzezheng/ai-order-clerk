@@ -233,7 +233,7 @@ AI 询问次数：
 
 ## 6. 何时进入真 ASR/TTS（顺延，不是本仓库的 Sprint 6B）
 
-产品 Sprint 6B 已改为 **Learning Memory Loop**（确认事件学习）。真麦克风 / TTS **另批**。技术已经接得上 turns，所以技术完成不能当绿灯。
+产品 Sprint 6B 已改为 **Learning Memory Loop**（确认事件学习）。真麦克风 / TTS 在 V0.3D Admission 为 A 之后进入 **V0.4 Voice Adapter**（只换 text 来源与 `reply_text` 播出，不改内核）。技术已经接得上 turns，所以技术完成不能当绿灯。设计见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。
 
 ### 可以进入真 ASR/TTS
 

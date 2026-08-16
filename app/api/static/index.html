@@ -201,19 +201,12 @@
       </div>
       <button class="mic" id="mic" type="button">🎤<br>按住说话</button>
       <button class="done-btn" id="done" type="button">好了</button>
-      <div class="hint">也可以直接说「好了」。本页用文本模拟语音。</div>
+      <div class="hint">也可以直接说「好了」。听错的字不会被改成商品。</div>
     </div>
   </div>
 
+  <script src="/static/voice-controller.js"></script>
   <script>
-    const ui = {
-      sessionId: null,
-      seq: 0,
-      phase: "IDLE",
-      last: null,
-      hold: false,
-    };
-
     const phaseLabel = {
       IDLE: "按住说话",
       LISTENING: "正在听...",
@@ -234,21 +227,26 @@
       document.body.classList.add("dev-on");
     }
 
+    const speech = document.getElementById("speech");
+    let asrFinal = "";
+
     function setPhase(phase) {
-      ui.phase = phase;
       document.body.dataset.ui = phase;
       document.getElementById("phase").textContent = phaseLabel[phase];
       document.getElementById("mic").textContent = micLabel[phase];
       document.getElementById("done").disabled = phase === "PROCESSING" || phase === "DONE";
       if (phase === "LISTENING") {
-        const box = document.getElementById("speech");
-        if (!box.value) box.value = "";
-        setTimeout(() => box.focus(), 30);
+        if (!speech.value) speech.value = "";
+        setTimeout(() => speech.focus(), 30);
       }
     }
 
     function renderGuide(draft) {
       const el = document.getElementById("guide");
+      if (controller.state.hint) {
+        el.textContent = controller.state.hint;
+        return;
+      }
       if (!draft || !draft.customer) {
         el.textContent = "先说开谁的单。按住说话，或点下面的例子。";
         return;
@@ -306,8 +304,8 @@
         timeline.className = "";
         timeline.innerHTML = items.map((ev) => "<div class=\"event\">" + ev.event_type + "</div>").join("");
       }
-      document.getElementById("sessionMeta").textContent = ui.sessionId
-        ? ("session_id " + ui.sessionId)
+      document.getElementById("sessionMeta").textContent = controller.state.sessionId
+        ? ("session_id " + controller.state.sessionId)
         : "未创建";
     }
 
@@ -315,125 +313,114 @@
       document.getElementById("reply").textContent = text || "";
     }
 
-    async function ensureSession() {
-      if (ui.sessionId) return;
-      const res = await fetch("/v1/sessions", { method: "POST" });
-      const body = await res.json();
-      ui.sessionId = body.session_id;
-      ui.last = body;
-      renderCustomer(body.draft);
-      renderOrder(body.draft);
-      renderGuide(body.draft);
-      renderDev(body);
-    }
-
-    async function sendTurn(text) {
-      const said = (text || "").trim();
-      if (!said || ui.phase === "PROCESSING") return;
-      await ensureSession();
-      setPhase("PROCESSING");
-      ui.seq += 1;
-      const res = await fetch("/v1/sessions/" + ui.sessionId + "/turns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: said,
-          source: "text",
-          utterance_id: crypto.randomUUID(),
-          seq: ui.seq,
-          is_final: true,
-          expect_more: false
-        })
-      });
-      const body = await res.json();
-      if (!res.ok) {
+    function renderFromState() {
+      const state = controller.state;
+      setPhase(state.phase);
+      const body = state.last || {};
+      const draft = body.draft;
+      const spoken = state.replyText || (body && body.reply_text) || "";
+      if (spoken) {
+        showReply(spoken);
+      } else if (!draft || !draft.customer) {
+        showReply("按住说话开始开单。");
+      } else {
         showReply("");
-        document.getElementById("guide").textContent = "这句没接上，请再说一遍。";
-        setPhase("IDLE");
-        return;
       }
-      ui.last = body;
-      showReply(body.reply_text);
-      renderCustomer(body.draft);
-      renderOrder(body.draft);
-      renderGuide(body.draft);
+      renderCustomer(draft);
+      renderOrder(draft);
+      renderGuide(draft);
       renderDev(body);
-      if (body.draft && body.draft.status === "confirmed") {
-        setPhase("DONE");
-        return;
+      if (state.phase === "LISTENING" && state.overlay) {
+        speech.value = state.overlay;
       }
-      setPhase("IDLE");
     }
 
-    async function resetOrder() {
-      ui.sessionId = null;
-      ui.seq = 0;
-      ui.last = null;
-      showReply("按住说话开始开单。");
-      renderCustomer(null);
-      renderOrder(null);
-      renderGuide(null);
-      renderDev(null);
-      setPhase("IDLE");
-      await ensureSession();
+    const transport = {
+      createSession: async function () {
+        const res = await fetch("/v1/sessions", { method: "POST" });
+        return res.json();
+      },
+      postTurn: async function (sessionId, command) {
+        const res = await fetch("/v1/sessions/" + sessionId + "/turns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(command)
+        });
+        const body = await res.json();
+        return { status: res.status, body: body };
+      }
+    };
+
+    const tts = VoiceShell.createBrowserTts(
+      function (playId) { controller.onTtsEnded(playId); },
+      function () { controller.onTtsInterrupted(); }
+    );
+
+    const controller = VoiceShell.createVoiceController({
+      transport: transport,
+      tts: tts,
+      onChange: renderFromState
+    });
+
+    const rec = VoiceShell.createBrowserAsr(
+      function (partial) { controller.notePartial(partial); },
+      function (finalText) { asrFinal = finalText; }
+    );
+
+    async function startListen() {
+      const result = controller.press();
+      if (result.startNew) {
+        showReply("按住说话开始开单。");
+        await controller.startNewSession();
+        return;
+      }
+      if (result.reason !== "listening") return;
+      asrFinal = "";
+      speech.value = "";
+      if (rec) {
+        try { rec.start(); } catch (err) {}
+      }
+    }
+
+    async function endListen() {
+      if (controller.state.phase !== "LISTENING" || !controller.state.hold) return;
+      if (rec) {
+        try { rec.stop(); } catch (err) {}
+      }
+      const said = asrFinal || speech.value;
+      asrFinal = "";
+      await controller.releaseFinal(said);
+      speech.value = "";
     }
 
     const mic = document.getElementById("mic");
-    const speech = document.getElementById("speech");
-
-    function startListen() {
-      if (ui.phase === "DONE") {
-        resetOrder();
-        return;
-      }
-      if (ui.phase === "PROCESSING") return;
-      if (ui.phase === "LISTENING") {
-        ui.hold = false;
-        const said = speech.value.trim();
-        if (said) sendTurn(said);
-        else setPhase("IDLE");
-        return;
-      }
-      ui.hold = true;
-      setPhase("LISTENING");
-    }
-
-    function endListen() {
-      if (!ui.hold) return;
-      ui.hold = false;
-      const said = speech.value.trim();
-      if (said) sendTurn(said);
-    }
-
-    mic.addEventListener("pointerdown", (ev) => {
+    mic.addEventListener("pointerdown", function (ev) {
       ev.preventDefault();
       startListen();
     });
-    mic.addEventListener("contextmenu", (ev) => ev.preventDefault());
+    mic.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
     window.addEventListener("pointerup", endListen);
     window.addEventListener("pointercancel", endListen);
 
-    speech.addEventListener("keydown", (ev) => {
+    speech.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter" && !ev.shiftKey) {
         ev.preventDefault();
-        ui.hold = false;
-        sendTurn(speech.value);
+        endListen();
       }
     });
 
-    document.getElementById("done").addEventListener("click", () => {
-      if (ui.phase === "DONE" || ui.phase === "PROCESSING") return;
-      sendTurn("好了");
+    document.getElementById("done").addEventListener("click", function () {
+      controller.confirmDone();
     });
 
-    document.getElementById("examples").addEventListener("click", (ev) => {
+    document.getElementById("examples").addEventListener("click", function (ev) {
       const chip = ev.target.closest("[data-example]");
-      if (!chip || ui.phase === "DONE" || ui.phase === "PROCESSING") return;
-      sendTurn(chip.getAttribute("data-example"));
+      if (!chip) return;
+      controller.submitFakeFinal(chip.getAttribute("data-example"));
     });
 
-    setPhase("IDLE");
-    ensureSession();
+    showReply("按住说话开始开单。");
+    controller.startNewSession();
   </script>
 </body>
 </html>

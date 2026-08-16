@@ -81,7 +81,7 @@ Runtime：G1–G4 真 Parser 驱动现网 Runner 通过，三轮草稿快照一�
 
 - Qwen 不只是会抽 SpeechAct，而是可以作为 AI 开单员的**默认语言入口**。
 - 现网 Runtime（Understanding / Resolver / Policy / Confirm Gate / Memory）未改。
-- ASR / TTS / ERP 仍未接入。语音是下一阶段，不是本结论的一部分。
+- ASR / TTS / ERP 仍未接入。语音是下一阶段（V0.4 Voice Adapter），不是本结论的一部分。设计见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。
 
 ---
 

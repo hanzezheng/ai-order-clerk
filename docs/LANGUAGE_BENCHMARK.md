@@ -254,7 +254,9 @@ V0.4 指下一阶段产品增量（无论是 ASR 外壳、ERP 适配还是 LangG
 
 ### 4.3 明确不做（V0.4 前也不做）
 
-ASR / TTS / ERP 商品同步 / Vector DB / 自动创建 SKU / Ontology 学习 / 商品智能 Agent / 改 `confirm_gate` / LLM 返回 sku_id。
+ERP 商品同步 / Vector DB / 自动创建 SKU / Ontology 学习 / 商品智能 Agent / 改 `confirm_gate` / LLM 返回 sku_id。
+
+V0.3C 评测阶段本身不上 ASR/TTS。V0.3D Admission 为 A 之后，V0.4 只允许 Voice Adapter（final 文本进现有 turns）。语音设计见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。
 
 ---
 

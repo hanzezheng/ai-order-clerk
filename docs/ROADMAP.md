@@ -4,7 +4,7 @@ Voice-first 行业 AI Agent。当前垂直：农批开单员。路线服从 `doc
 
 ## 阶段 1：AI 开单员 POC
 
-目标：连续语音订单理解（可用文本模拟 ASR）。不接 ERP。V1 允许最小 Demo Shell（文本模拟麦），禁止做成 ERP 前端。
+目标：连续语音订单理解（可用文本模拟 ASR）。不接 ERP。V1 允许最小 Demo Shell；6A.5 起 Demo 口播只展示后端 `reply_text`。
 
 包含：
 

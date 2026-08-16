@@ -769,6 +769,7 @@ verdict + session snapshot + changed_line_ids
 7. BusinessContext 只读投影 + Policy notice（不套价）  
 8. Sprint 6A：HTTP `POST /v1/sessions` + `POST /v1/sessions/{id}/turns`；Session Timeline（业务事件，禁止聊天记录）；Web Demo Shell（文本模拟麦）；API 契约测试。内核模块保持不动。  
 8b. Sprint 6A-UX：Demo 改为老板可理解的 Voice-first 开单员（按住说话、只读订单、开发模式）。不改内核。  
+8c. Sprint 6A.5 Demo Pack：快捷示例、口播只展示 `reply_text`、自然引导 30 秒剧本、开发模式仅 `?dev=1`、可启动 Demo 端口。不改内核。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -874,7 +875,7 @@ Demo 是给农批老板看的开单员，不是开发测试台。只改 `app/api
 页面：
 
 - 标题「AI开单员」；顶部只显示当前客户，未开单时显示「还没有开始开单」
-- AI 区用草稿与裁决做**老板口吻**展示（「李老板，单好了。」「价格还没定。」）。内核 `reply_text` 仍由模板生成，默认不展示，开发模式可见
+- AI 区**默认**展示后端 `reply_text`（Sprint 6A.5 废止前端转写）。开发模式仅 `?dev=1`。
 - 「本次订单」只读：客户、品名、数量、价格待定。禁止展示 id / source / confidence / policy / memory
 - Timeline、session id、commands、verdict 默认隐藏，开发模式才打开
 - 主操作是巨大「按住说话」（V1 仍用文本模拟 ASR，无真麦克风）。「好了」是辅助按钮，老板也可以直接说「好了」
@@ -885,3 +886,30 @@ Demo 是给农批老板看的开单员，不是开发测试台。只改 `app/api
 IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
                                          ↘ DONE（草稿已确认）
 ```
+
+### 14.5 Demo Pack（Sprint 6A.5）
+
+目标：陌生用户 10 秒知道如何开始，30 秒开完一单。只改 Demo 壳与启动方式，**不改** Parser / Resolver / Policy / Memory / OrderService / Response 核心。
+
+**一张嘴：** 用户可见的业务口播只能是该轮 `POST /v1/sessions/{id}/turns` 的 `reply_text`。禁止前端按草稿拼接「李老板，单好了」「价格还没定」等句子。订单区只展示 API `draft` 字段（客户名、行 label、数量），不是第二张嘴。
+
+**旁白不是第三张嘴：** 不解释 Memory / 档案 / Policy。李老板说「苹果」后，档案默认与「按档案」只出现在内核 `reply_text` 里。
+
+**首次开口：** 三枚示例芯片（开李老板的单 / 苹果60件 / 好了）写入同一条 turns 提交。不替代「按住说话」，只降低第一句成本。
+
+**Demo Script：** 按草稿状态给自然引导，禁止考试式「下一句可以说：…」。
+
+| 状态 | 引导（UI 提示，非口播） |
+| --- | --- |
+| 未开单 | 先说开谁的单。按住说话，或点下面的例子。 |
+| 已有客户、还没有货 | 直接报货就行。 |
+| 已有货、未确认 | 说「好了」，这单就定。 |
+| 已确认 | 不再提示；口播保持 `reply_text` |
+
+固定体验路径仍是：开李老板的单 → 苹果60件 → 好了。
+
+**开发模式：** 默认不可见。仅 `/?dev=1` 显示 Timeline 等调试信息。
+
+**可访问环境：** `.cursor/environment.json` 声明 Demo 端口 8000，并用 terminals 拉起 `uvicorn`。本机需 Python 3.12+。不提供公网托管。
+
+**非技术用户验收：** 打开 `/` 后 10 秒内能发现「按住说话」与「开李老板的单」；按剧本 30 秒内确认一单，回复含「价未定」，且含档案事实（红富士 / 按档案）。

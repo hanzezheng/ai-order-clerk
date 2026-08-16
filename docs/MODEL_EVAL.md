@@ -30,6 +30,9 @@
 LLM_API_KEY     有则发请求；无则 Unconfigured（直接规则，不算评测）
 LLM_BASE_URL    默认 https://api.openai.com/v1
 LLM_MODEL       默认 gpt-4o-mini
+LLM_TIMEOUT     单次 HTTP 超时秒数，默认 45
+LLM_RETRIES     超时 / 429 / 5xx 额外重试次数，默认 2（共 3 次）
+LLM_EVAL_PAUSE  live 条间间隔秒数，默认 0.25；仅 HttpLlmClient
 ```
 
 | 候选 | 接入 | 说明 |
@@ -45,6 +48,7 @@ LLM_MODEL       默认 gpt-4o-mini
 - **不传** Session、草稿、Catalog、客户列表、价格、历史 turns
 - 期望模型返回可经 `LlmTurnParse` 校验的 JSON；markdown 围栏可剥，其它包装算失败
 - Schema `extra=forbid`；`sku_id` / `product_id` / `customer_id` / `target_line_id` 等业务 id 不得出现在 LLM 槽位。Converter 再剥一遍。出现即 L0 失败或 Schema 失败，**不得**当成功抽取
+- 传输层：超时、429、5xx 可重试；401/400 不重试。耗尽后仍 `fallback_reason=client_error`，`raw` 记 `client_error:timeout` / `client_error:http_429` 等，禁止把 API Key 写入报告。规则兜底成功仍不算模型成功。
 
 一次评测运行必须记录：`model`、`base_url` 的 host（不含密钥）、`prompt_id`、数据集版本、git sha、时间。同一报告里禁止混跑两个模型。
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import time
 from os import environ
 from pathlib import Path
 from typing import Any, Literal
@@ -88,7 +89,11 @@ class CaptureLlmClient:
             raise RuntimeError("eval_prompt_mismatch")
         self.last_system = system
         self.last_user = user
-        raw = self.inner.complete(system=system, user=user)
+        try:
+            raw = self.inner.complete(system=system, user=user)
+        except Exception as exc:
+            self.last_raw = str(exc)[:_RAW_LIMIT]
+            raise
         self.last_raw = raw
         return raw
 
@@ -125,7 +130,10 @@ class LanguageBenchmark:
         capture: CaptureLlmClient | None = None,
     ) -> ParserEvaluationReport:
         records: list[ParserEvaluationRecord] = []
-        for case in cases:
+        pause = _live_http_pause(mode, capture)
+        for index, case in enumerate(cases):
+            if pause > 0 and index > 0:
+                time.sleep(pause)
             parsed = parser.parse(case.text)
             raw = _stringify_raw(capture.last_raw) if capture is not None else None
             if capture is not None:
@@ -361,6 +369,21 @@ def _stringify_raw(raw: Any) -> str:
     if isinstance(raw, str):
         return raw
     return json.dumps(raw, ensure_ascii=False)
+
+
+def _live_http_pause(mode: EvalMode, capture: CaptureLlmClient | None) -> float:
+    if mode != "live" or capture is None:
+        return 0.0
+    client = capture.inner
+    if isinstance(client, CaptureLlmClient):
+        client = client.inner
+    if not isinstance(client, HttpLlmClient):
+        return 0.0
+    raw = (environ.get("LLM_EVAL_PAUSE") or "0.25").strip()
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 0.25
 
 
 def _git_sha() -> str | None:

@@ -21,6 +21,7 @@ class SalesSession(BaseModel):
     deferred_issues: list[Issue] = Field(default_factory=list)
     turn_index: int = 0
     line_buffer: list[SpeechAct] = Field(default_factory=list)
+    suppressed_default_node_ids: list[UUID] = Field(default_factory=list)
 
 
 class TurnResult(BaseModel):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from app.entity.events import ORDER_CONFIRMED, DomainEvent
+from app.entity.events import ORDER_CONFIRMED, PREFERENCE_ADJUSTED, DomainEvent
 from app.entity.memory import MemoryCandidate, PriceMemoryRecord
 from app.entity.session import SalesSession
 from app.entity.speech import SpeechAct
@@ -31,16 +31,52 @@ class MemoryExtractor:
     def extract_from_events(self, session: SalesSession, events: list[DomainEvent]) -> list[MemoryCandidate]:
         out: list[MemoryCandidate] = []
         order_id = session.draft.order_id
+        confirmed: list[DomainEvent] = []
+        adjusted: list[DomainEvent] = []
         for event in events:
             if event.event_id in self._seen:
                 continue
-            if event.event_type != ORDER_CONFIRMED:
-                continue
             if event.aggregate_id != order_id:
                 continue
+            if event.event_type == ORDER_CONFIRMED:
+                confirmed.append(event)
+            elif event.event_type == PREFERENCE_ADJUSTED:
+                adjusted.append(event)
+        for event in confirmed:
             self._seen.add(event.event_id)
             out.extend(self._from_confirmed_draft(session))
+        for event in adjusted:
+            self._seen.add(event.event_id)
+            out.extend(self._from_preference_adjusted(event))
         return out
+
+    def _from_preference_adjusted(self, event: DomainEvent) -> list[MemoryCandidate]:
+        payload = event.payload or {}
+        customer_id = _as_uuid(payload.get("customer_id"))
+        node_id = _as_uuid(payload.get("node_id"))
+        from_sku_id = _as_uuid(payload.get("from_sku_id"))
+        if customer_id is None or node_id is None or from_sku_id is None:
+            return []
+        evidence = self._evidence.adjust(
+            customer_id=customer_id,
+            kind="product_default",
+            node_id=node_id,
+            sku_id=from_sku_id,
+            delta=-1,
+        )
+        return [
+            MemoryCandidate(
+                kind="product_default",
+                confidence=1.0,
+                reason="preference_adjusted_negative_evidence",
+                source_event=PREFERENCE_ADJUSTED,
+                customer_id=customer_id,
+                node_id=node_id,
+                sku_id=from_sku_id,
+                evidence_count=evidence.count,
+                status=evidence.status,
+            )
+        ]
 
     def _from_confirmed_draft(self, session: SalesSession) -> list[MemoryCandidate]:
         customer = session.draft.customer
@@ -114,3 +150,14 @@ class MemoryExtractor:
         if line.mention.matched_node is not None:
             return line.mention.matched_node.id
         return line.matched_node_id
+
+
+def _as_uuid(value: object) -> UUID | None:
+    if value is None:
+        return None
+    if isinstance(value, UUID):
+        return value
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError):
+        return None

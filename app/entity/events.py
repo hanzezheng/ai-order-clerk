@@ -12,6 +12,7 @@ ORDER_LINE_REMOVED = "order.line_removed"
 ORDER_CONFIRMED = "order.confirmed"
 ORDER_CANCELLED = "order.cancelled"
 ORDER_PRICE_FILLED = "order.price_filled"
+PREFERENCE_ADJUSTED = "memory.preference_adjusted"
 
 
 class DomainEvent(BaseModel):

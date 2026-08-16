@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection
+from uuid import UUID
+
 from app.entity.catalog import CustomerProfile, CustomerRef, ProductMention
 from app.entity.context import BusinessContext
 from app.entity.issue import DecisionVerdict, Issue
@@ -51,7 +54,13 @@ class DecisionPolicy:
             reasons=["customer_not_found"],
         )
 
-    def fill_sku(self, mention: ProductMention, profile: CustomerProfile | None) -> ProductMention:
+    def fill_sku(
+        self,
+        mention: ProductMention,
+        profile: CustomerProfile | None,
+        *,
+        suppressed_node_ids: Collection[UUID] | None = None,
+    ) -> ProductMention:
         node = mention.matched_node
         if node is None:
             return mention
@@ -60,7 +69,8 @@ class DecisionPolicy:
             mention.resolve_level = "sku"
             mention.filled_from = "explicit"
             return mention
-        if profile:
+        suppressed = set(suppressed_node_ids or ())
+        if profile and node.id not in suppressed:
             sku_id = profile.product_defaults.get(str(node.id))
             if sku_id:
                 sku = self._ontology.get(sku_id)

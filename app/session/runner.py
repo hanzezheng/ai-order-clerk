@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from uuid import UUID
 
 from app.entity.catalog import CustomerProfile, ProductMention
-from app.entity.events import RecordingEventPublisher
+from app.entity.events import PREFERENCE_ADJUSTED, DomainEvent, RecordingEventPublisher
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import Quantity
 from app.entity.price import PriceQuote
@@ -99,6 +100,7 @@ class SalesSessionRunner:
             if gate.confirm_ok:
                 self._orders.confirm(session)
                 executed.append("confirm_order")
+                self._publish_preference_adjusted(session)
             reasons.extend(gate.reasons)
 
         if self._context_loader is not None:
@@ -190,6 +192,7 @@ class SalesSessionRunner:
             if mention.matched_node is None:
                 return line_verdict
             self._orders.apply_line(session, mention, qty, op)
+            self._suppress_profile_default_if_needed(session)
             return line_verdict
 
         if act.type == "set_price":
@@ -209,6 +212,7 @@ class SalesSessionRunner:
                 source="explicit",
             )
             self._orders.set_price(session, mention, quote)
+            self._suppress_profile_default_if_needed(session)
             return verdict
 
         if act.type == "refine_spec":
@@ -220,6 +224,7 @@ class SalesSessionRunner:
                     issues=[Issue(code="no_focus_line", block_level="notice", message="改哪一行？")],
                 )
             self._orders.apply_line(session, mention, line.qty, "set")
+            self._suppress_profile_default_if_needed(session)
             return DecisionVerdict(allow_execute=True, reasons=["spec_refined"])
 
         if act.type == "set_qty":
@@ -256,7 +261,11 @@ class SalesSessionRunner:
         profile: CustomerProfile | None = None
         if session.draft.customer and session.draft.customer.id:
             profile = self._customers.get_profile(session.draft.customer.id)
-        filled = self._policy.fill_sku(mention, profile)
+        filled = self._policy.fill_sku(
+            mention,
+            profile,
+            suppressed_node_ids=session.suppressed_default_node_ids,
+        )
         customer_id = session.draft.customer.id if session.draft.customer else None
         sku = filled.resolved_sku
         if sku is not None and customer_id is not None:
@@ -264,6 +273,68 @@ class SalesSessionRunner:
             if self._price_memory.silent_quote(lookup) is None:
                 pass
         return filled
+
+    def _suppress_profile_default_if_needed(self, session: SalesSession) -> None:
+        customer = session.draft.customer
+        if customer is None or customer.id is None:
+            return
+        profile = self._customers.get_profile(customer.id)
+        if profile is None:
+            return
+        for line in session.draft.lines:
+            if line.product_sku_id is None:
+                continue
+            node_id = self._line_preference_node_id(line)
+            if node_id is None:
+                continue
+            default_sku = profile.product_defaults.get(str(node_id))
+            if default_sku is None or default_sku == line.product_sku_id:
+                continue
+            if node_id not in session.suppressed_default_node_ids:
+                session.suppressed_default_node_ids.append(node_id)
+
+    def _publish_preference_adjusted(self, session: SalesSession) -> None:
+        if self._events is None:
+            return
+        customer = session.draft.customer
+        if customer is None or customer.id is None:
+            return
+        profile = self._customers.get_profile(customer.id)
+        if profile is None:
+            return
+        for line in session.draft.lines:
+            if line.product_sku_id is None:
+                continue
+            node_id = self._line_preference_node_id(line)
+            if node_id is None:
+                continue
+            from_sku = profile.product_defaults.get(str(node_id))
+            if from_sku is None or from_sku == line.product_sku_id:
+                continue
+            self._events.publish(
+                DomainEvent(
+                    event_type=PREFERENCE_ADJUSTED,
+                    aggregate_id=session.draft.order_id,
+                    payload={
+                        "customer_id": str(customer.id),
+                        "node_id": str(node_id),
+                        "from_sku_id": str(from_sku),
+                        "to_sku_id": str(line.product_sku_id),
+                        "order_id": str(session.draft.order_id),
+                    },
+                )
+            )
+
+    def _line_preference_node_id(self, line) -> UUID | None:
+        node = line.mention.resolved_sku or line.mention.matched_node
+        if node is None:
+            return line.matched_node_id
+        variety = self._ontology.variety_id(node)
+        if variety is not None:
+            return variety
+        if line.mention.matched_node is not None:
+            return line.mention.matched_node.id
+        return line.matched_node_id
 
     def _default_uom(self, mention: ProductMention) -> str:
         node = mention.resolved_sku or mention.matched_node

@@ -4,13 +4,15 @@ Voice-first 农批开单员：老板连续自然语言开单，Agent 维护客�
 
 第一阶段做 Agent 后端核心 + V1 最小开单壳：不接 ERP，禁止做成 ERP 前端。
 
+需要 **Python 3.12+**（3.9 无法安装）。
+
 ```bash
 python3 -m pip install -e '.[dev]'
 python3 -m pytest -q
-python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-打开 `/` 用文本模拟语音开单。自然语言只走 `POST /v1/sessions/{id}/turns`。
+打开 http://127.0.0.1:8000/ 。先说「开李老板的单」，再报货，最后说「好了」。口播只展示后端 `reply_text`。自然语言只走 `POST /v1/sessions/{id}/turns`。调试时间线：`http://127.0.0.1:8000/?dev=1`。
 
 ## 文档
 

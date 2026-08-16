@@ -11,27 +11,36 @@ def _client() -> TestClient:
     return TestClient(create_app(build_app_world()))
 
 
-def test_demo_page_is_voice_shell_not_erp_form():
-    client = _client()
-    res = client.get("/")
-    assert res.status_code == 200
-    html = res.text
+def test_demo_page_first_run_is_obvious_in_ten_seconds():
+    html = _client().get("/").text
     assert "AI开单员" in html
     assert "还没有开始开单" in html
-    assert "本次订单" in html
     assert "按住说话" in html
-    assert "好了" in html
-    assert "开发模式" in html
-    assert "价格还没定" in html
-    assert "单好了" in html
-    assert "/v1/sessions" in html
-    assert "id=\"devPanel\"" in html
-    assert "body.dev-on .dev" in html
+    assert "先说开谁的单" in html
+    assert 'data-example="开李老板的单"' in html
+    assert 'data-example="苹果60件"' in html
+    assert 'data-example="好了"' in html
+    assert "下一句" not in html
+    assert "开发模式" not in html
     assert "加一行" not in html
     assert "name=\"qty\"" not in html
     assert "库存" not in html
     assert "收款" not in html
     assert "登录" not in html
+
+
+def test_demo_page_has_one_mouth_from_backend_reply_text():
+    html = _client().get("/").text
+    assert "reply_text" in html
+    assert "bossSpeak" not in html
+    assert "friendlyBoss" not in html
+    assert "friendlyProduct" not in html
+    assert "价格还没定" not in html
+    assert "李老板，单好了" not in html
+    assert "按李老板常拿" not in html
+    assert "没报规格" not in html
+    assert "URLSearchParams" in html
+    assert "get(\"dev\")" in html
 
 
 def test_demo_flow_li_boss_confirms_with_price_tbd():
@@ -43,6 +52,9 @@ def test_demo_flow_li_boss_confirms_with_price_tbd():
     assert start.status_code == 200
     assert apple.status_code == 200
     assert done.status_code == 200, done.text
+    apple_body = apple.json()
+    assert "红富士" in apple_body["reply_text"]
+    assert "按档案" in apple_body["reply_text"]
     body = done.json()
     assert body["verdict"]["confirm_ok"] is True
     assert body["draft"]["status"] == "confirmed"

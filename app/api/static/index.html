@@ -29,9 +29,8 @@
       max-width: 520px;
       margin: 0 auto;
       min-height: 100%;
-      padding: 20px 20px 280px;
+      padding: 20px 20px 300px;
     }
-    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
     h1 { font-size: 28px; margin: 0; }
     .customer {
       margin-top: 8px;
@@ -39,29 +38,38 @@
       color: var(--muted);
     }
     .customer.has { color: var(--ink); }
-    .dev-toggle {
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      font-size: 12px;
-      cursor: pointer;
-      padding: 6px 0;
-    }
     .phase {
       display: inline-block;
-      margin: 18px 0 12px;
+      margin: 18px 0 8px;
       padding: 6px 12px;
       border-radius: 999px;
       background: #243028;
       color: var(--muted);
       font-size: 13px;
     }
+    .guide {
+      color: var(--muted);
+      font-size: 16px;
+      margin: 0 0 12px;
+      min-height: 24px;
+    }
     .speak {
       min-height: 132px;
-      font-size: 30px;
+      font-size: 28px;
       line-height: 1.35;
       font-weight: 650;
       white-space: pre-line;
+    }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+    body[data-ui="DONE"] .examples { display: none; }
+    .chip {
+      border: 1px solid var(--line);
+      background: #162019;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 15px;
+      cursor: pointer;
     }
     .order {
       margin-top: 28px;
@@ -78,10 +86,7 @@
       font-weight: 600;
     }
     .who { font-size: 18px; margin-bottom: 16px; }
-    .item {
-      padding: 14px 0;
-      border-top: 1px solid var(--line);
-    }
+    .item { padding: 14px 0; border-top: 1px solid var(--line); }
     .item .name { font-size: 22px; font-weight: 650; }
     .item .meta { margin-top: 6px; color: var(--muted); font-size: 16px; display: flex; gap: 16px; }
     .price-tbd { color: var(--warn); }
@@ -123,8 +128,7 @@
       padding: 16px;
     }
     body[data-ui="LISTENING"] .mic { background: #f3f0e6; }
-    body[data-ui="PROCESSING"] .mic,
-    body[data-ui="SPEAKING"] .mic { opacity: 0.7; }
+    body[data-ui="PROCESSING"] .mic { opacity: 0.7; }
     body[data-ui="DONE"] .mic { background: var(--warn); }
     .done-btn {
       min-width: 196px;
@@ -164,15 +168,18 @@
 <body data-ui="IDLE">
   <div class="wrap">
     <header>
-      <div>
-        <h1>AI开单员</h1>
-        <div class="customer" id="customer">还没有开始开单</div>
-      </div>
-      <button class="dev-toggle" id="devToggle" type="button">开发模式</button>
+      <h1>AI开单员</h1>
+      <div class="customer" id="customer">还没有开始开单</div>
     </header>
 
     <div class="phase" id="phase">按住说话</div>
-    <div class="speak" id="reply">报客户，我来开单。</div>
+    <p class="guide" id="guide">先说开谁的单。按住说话，或点下面的例子。</p>
+    <div class="speak" id="reply">按住说话开始开单。</div>
+    <div class="examples" id="examples">
+      <button class="chip" type="button" data-example="开李老板的单">开李老板的单</button>
+      <button class="chip" type="button" data-example="苹果60件">苹果60件</button>
+      <button class="chip" type="button" data-example="好了">好了</button>
+    </div>
 
     <section class="order">
       <h2>本次订单</h2>
@@ -182,8 +189,6 @@
     <section class="dev" id="devPanel">
       <h2>业务时间线</h2>
       <div id="timeline" class="empty">暂无事件</div>
-      <h2 style="margin-top:14px;">内核口播</h2>
-      <div id="rawReply" class="empty">无</div>
       <h2 style="margin-top:14px;">session</h2>
       <div id="sessionMeta" class="empty">未创建</div>
     </section>
@@ -192,11 +197,11 @@
   <div class="dock">
     <div class="dock-inner">
       <div class="sheet">
-        <textarea id="speech" placeholder="正在听…把要说的话写在这里"></textarea>
+        <textarea id="speech" placeholder="正在听…"></textarea>
       </div>
       <button class="mic" id="mic" type="button">🎤<br>按住说话</button>
       <button class="done-btn" id="done" type="button">好了</button>
-      <div class="hint">也可以直接说「好了」。本页用文本模拟语音，没有真麦克风。</div>
+      <div class="hint">也可以直接说「好了」。本页用文本模拟语音。</div>
     </div>
   </div>
 
@@ -213,8 +218,8 @@
       IDLE: "按住说话",
       LISTENING: "正在听...",
       PROCESSING: "正在整理...",
-      SPEAKING: "继续说，或者点击好了",
-      DONE: "单已经好了",
+      SPEAKING: "按住说话",
+      DONE: "单已经定了",
     };
 
     const micLabel = {
@@ -225,50 +230,8 @@
       DONE: "再开一单",
     };
 
-    function friendlyBoss(name) {
-      if (!name) return "";
-      if (name.includes("李")) return "李老板";
-      if (name.includes("王")) return "王老板";
-      return name;
-    }
-
-    function friendlyProduct(label) {
-      if (!label) return "货";
-      if (label.includes("青苹果")) return "青苹果";
-      if (label.includes("红富士") || label.includes("苹果")) return "苹果";
-      if (label.includes("皇冠") || label.includes("梨")) return "皇冠梨";
-      if (label.includes("金边") || label.includes("榴莲")) return "金边榴莲";
-      return label;
-    }
-
-    function bossSpeak(body) {
-      if (!body || body.ignored) return "这句没听清，再说一遍。";
-      const draft = body.draft || {};
-      const issues = (body.verdict && body.verdict.issues) || [];
-      const amb = issues.find((item) => item.code === "customer_ambiguous");
-      if (amb) {
-        const names = (amb.options || []).map((opt) => opt.name).filter(Boolean);
-        if (names.length) return "有两家都叫这个，是" + names.join("，还是") + "？";
-        return "有好几家，开哪一家？";
-      }
-      if (issues.some((item) => item.code === "customer_not_found")) {
-        return "没对上这家，再说一遍是哪位老板。";
-      }
-      const who = friendlyBoss(draft.customer && draft.customer.name);
-      const lines = draft.lines || [];
-      if (draft.status === "confirmed") {
-        const goods = lines.map((line) => friendlyProduct(line.label) + line.qty + line.uom).join("，");
-        const tbd = lines.some((line) => line.price_status === "tbd" || !line.unit_price);
-        return [who ? who + "，单好了。" : "单好了。", goods ? goods + "。" : "", tbd ? "价格还没定。" : ""]
-          .filter(Boolean)
-          .join("\n");
-      }
-      if (!draft.customer) return "还没有开始开单。可以说：开李老板的单。";
-      if (!lines.length) return who + "，单开好了，报货吧。";
-      const goods = lines.map((line) => friendlyProduct(line.label) + line.qty + line.uom).join("，");
-      if (body.reply_mode === "ack") return "记下了，" + goods + "。";
-      const tbd = lines.some((line) => line.price_status === "tbd" || !line.unit_price);
-      return (who ? who + "，" : "") + goods + "。" + (tbd ? "\n价格还没定。" : "");
+    if (new URLSearchParams(location.search).get("dev") === "1") {
+      document.body.classList.add("dev-on");
     }
 
     function setPhase(phase) {
@@ -279,9 +242,26 @@
       document.getElementById("done").disabled = phase === "PROCESSING" || phase === "DONE";
       if (phase === "LISTENING") {
         const box = document.getElementById("speech");
-        box.value = "";
+        if (!box.value) box.value = "";
         setTimeout(() => box.focus(), 30);
       }
+    }
+
+    function renderGuide(draft) {
+      const el = document.getElementById("guide");
+      if (!draft || !draft.customer) {
+        el.textContent = "先说开谁的单。按住说话，或点下面的例子。";
+        return;
+      }
+      if (draft.status === "confirmed") {
+        el.textContent = "";
+        return;
+      }
+      if (!draft.lines || !draft.lines.length) {
+        el.textContent = "直接报货就行。";
+        return;
+      }
+      el.textContent = "说「好了」，这单就定。";
     }
 
     function renderCustomer(draft) {
@@ -302,17 +282,17 @@
         box.textContent = "还没有货";
         return;
       }
-      const who = `<div class="who">客户：${friendlyBoss(draft.customer.name) || draft.customer.name}</div>`;
+      const who = "<div class=\"who\">客户：" + draft.customer.name + "</div>";
       if (!draft.lines || !draft.lines.length) {
         box.className = "";
-        box.innerHTML = who + `<div class="empty">还没有货</div>`;
+        box.innerHTML = who + "<div class=\"empty\">还没有货</div>";
         return;
       }
       box.className = "";
       box.innerHTML = who + draft.lines.map((line) => {
         const tbd = line.price_status === "tbd" || !line.unit_price;
-        const price = tbd ? "价格待定" : (line.unit_price + (line.uom || ""));
-        return `<div class="item"><div class="name">${friendlyProduct(line.label)}</div><div class="meta"><span>${line.qty}${line.uom}</span><span class="${tbd ? "price-tbd" : ""}">${price}</span></div></div>`;
+        const price = tbd ? "价未定" : String(line.unit_price);
+        return "<div class=\"item\"><div class=\"name\">" + line.label + "</div><div class=\"meta\"><span>" + line.qty + line.uom + "</span><span class=\"" + (tbd ? "price-tbd" : "") + "\">" + price + "</span></div></div>";
       }).join("");
     }
 
@@ -324,12 +304,15 @@
         timeline.textContent = "暂无事件";
       } else {
         timeline.className = "";
-        timeline.innerHTML = items.map((ev) => `<div class="event">${ev.event_type}</div>`).join("");
+        timeline.innerHTML = items.map((ev) => "<div class=\"event\">" + ev.event_type + "</div>").join("");
       }
-      document.getElementById("rawReply").textContent = (body && body.reply_text) || "无";
       document.getElementById("sessionMeta").textContent = ui.sessionId
         ? ("session_id " + ui.sessionId)
         : "未创建";
+    }
+
+    function showReply(text) {
+      document.getElementById("reply").textContent = text || "";
     }
 
     async function ensureSession() {
@@ -340,6 +323,7 @@
       ui.last = body;
       renderCustomer(body.draft);
       renderOrder(body.draft);
+      renderGuide(body.draft);
       renderDev(body);
     }
 
@@ -363,32 +347,32 @@
       });
       const body = await res.json();
       if (!res.ok) {
-        document.getElementById("reply").textContent = "这句没接上，请再说一遍。";
+        showReply("");
+        document.getElementById("guide").textContent = "这句没接上，请再说一遍。";
         setPhase("IDLE");
         return;
       }
       ui.last = body;
-      document.getElementById("reply").textContent = bossSpeak(body);
+      showReply(body.reply_text);
       renderCustomer(body.draft);
       renderOrder(body.draft);
+      renderGuide(body.draft);
       renderDev(body);
       if (body.draft && body.draft.status === "confirmed") {
         setPhase("DONE");
         return;
       }
-      setPhase("SPEAKING");
-      setTimeout(() => {
-        if (ui.phase === "SPEAKING") setPhase("IDLE");
-      }, 900);
+      setPhase("IDLE");
     }
 
     async function resetOrder() {
       ui.sessionId = null;
       ui.seq = 0;
       ui.last = null;
-      document.getElementById("reply").textContent = "报客户，我来开单。";
+      showReply("按住说话开始开单。");
       renderCustomer(null);
       renderOrder(null);
+      renderGuide(null);
       renderDev(null);
       setPhase("IDLE");
       await ensureSession();
@@ -442,10 +426,10 @@
       sendTurn("好了");
     });
 
-    document.getElementById("devToggle").addEventListener("click", () => {
-      document.body.classList.toggle("dev-on");
-      document.getElementById("devToggle").textContent =
-        document.body.classList.contains("dev-on") ? "关闭开发模式" : "开发模式";
+    document.getElementById("examples").addEventListener("click", (ev) => {
+      const chip = ev.target.closest("[data-example]");
+      if (!chip || ui.phase === "DONE" || ui.phase === "PROCESSING") return;
+      sendTurn(chip.getAttribute("data-example"));
     });
 
     setPhase("IDLE");

@@ -1,4 +1,17 @@
 {
   "name": "ai-order-clerk",
-  "install": "python3 -m pip install -e '.[dev]'"
+  "install": "python3 -m pip install -e '.[dev]'",
+  "terminals": [
+    {
+      "name": "demo",
+      "command": "python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+      "description": "AI开单员 Demo。打开转发后的 8000 端口即可体验。"
+    }
+  ],
+  "ports": [
+    {
+      "name": "demo",
+      "port": 8000
+    }
+  ]
 }

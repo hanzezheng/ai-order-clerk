@@ -62,10 +62,18 @@ Qwen 与 GPT **分别出报告**，不合成「平均分」。准入是「名单
 | `fake` | V0.3C 金脚本夹具 | `FakeLlmClient` 按句给槽 | 否（测 Runtime，不测模型） |
 | `live` | 显式开启真模型评测 | `HttpLlmClient` | **是** |
 
-`live` 开启条件（设计约束，实现时择一，不得默认打开）：
+`live` 开启条件（不得默认打开）：
 
-- 环境同时有 `LLM_API_KEY` 与显式开关（例如 `RUN_LIVE_LLM=1`）
-- 无开关时，有密钥也**不得**让日常 pytest 打真实 API
+- 环境同时有 `LLM_API_KEY` 与 `RUN_LIVE_LLM=1`
+- 仅有密钥时，日常 `pytest` **不发**请求（live 用例 skip）
+
+生成报告：
+
+```text
+RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
+```
+
+产物默认 `docs/eval/runs/<utc>-<model>-parser.v1.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
 
 运行切片：
 

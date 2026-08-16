@@ -55,17 +55,17 @@ class HttpLlmClient:
 
     def __init__(self, *, api_key: str, base_url: str, model: str, timeout: float = 20.0) -> None:
         self._api_key = api_key
-        self._base_url = base_url.rstrip("/")
-        self._model = model
+        self.base_url = base_url.rstrip("/")
+        self.model = model
         self._timeout = timeout
 
     def available(self) -> bool:
         return True
 
     def complete(self, *, system: str, user: str) -> Any:
-        url = self._base_url + "/chat/completions"
+        url = self.base_url + "/chat/completions"
         payload = {
-            "model": self._model,
+            "model": self.model,
             "temperature": 0,
             "messages": [
                 {"role": "system", "content": system},

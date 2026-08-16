@@ -205,7 +205,9 @@ def test_spec_mention_stays_language_slot_and_is_not_mapped_to_sku():
 
 
 def test_prompt_has_no_catalog_or_price_knowledge():
-    from app.agent.prompts import PARSER_SYSTEM_PROMPT
+    from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
+
+    assert PARSER_PROMPT_ID == "parser.v1"
 
     for needle in (
         "红富士80",

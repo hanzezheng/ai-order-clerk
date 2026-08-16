@@ -28,3 +28,6 @@ app = ["api/static/*"]
 [tool.pytest.ini_options]
 testpaths = ["app/tests"]
 pythonpath = ["."]
+markers = [
+  "live_llm: real HTTP LLM; requires RUN_LIVE_LLM=1 and LLM_API_KEY",
+]

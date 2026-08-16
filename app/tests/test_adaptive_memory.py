@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from app.bootstrap import build_world, new_session
-from app.database.memory import APPLE, FUJI80, GREEN_SKU, LI_BOSS
+from app.database.memory import APPLE, FUJI80, GREEN_SKU, LI_BOSS, InMemoryEvidence
 from app.entity.events import ORDER_CONFIRMED, PREFERENCE_ADJUSTED
 from app.entity.memory import MemoryCandidate
 from app.entity.speech import SpeechAct
@@ -138,7 +138,7 @@ def test_extractor_ignores_speech_act_and_user_text():
 
 
 def test_evidence_delta_keeps_non_negative_net_and_preserves_signed_counts():
-    store = EvidenceStore()
+    store = EvidenceStore(InMemoryEvidence())
     customer_id = uuid4()
     node_id = uuid4()
     sku_id = uuid4()

@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.database.memory import InMemoryAliasStore, InMemoryCatalog, InMemoryPriceStore
 from app.entity.memory import MemoryCandidate
 from app.memory.policy import MemoryDecision
+from app.services.ports import AliasRepository, CatalogRepository, PriceMemoryRepository
 
 
 @dataclass(frozen=True)
 class MemoryService:
-    aliases: InMemoryAliasStore
-    prices: InMemoryPriceStore
-    catalog: InMemoryCatalog | None = None
+    aliases: AliasRepository
+    prices: PriceMemoryRepository
+    catalog: CatalogRepository | None = None
 
     def apply(self, candidate: MemoryCandidate, decision: MemoryDecision) -> None:
         if not decision.write:

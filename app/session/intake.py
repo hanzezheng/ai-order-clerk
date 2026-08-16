@@ -9,7 +9,8 @@ from app.entity.issue import Issue
 from app.entity.order import OrderLine
 from app.entity.session import SalesSession, TurnResult
 from app.entity.timeline import TimelineEvent
-from app.services.ports import SessionRepository
+from app.entity.intake import IntakeReceipt
+from app.services.ports import IntakeReceiptRepository, SessionRepository
 from app.session.runner import SalesSessionRunner
 from app.session.timeline import SessionTimelineStore
 from app.entity.events import RecordingEventPublisher
@@ -42,15 +43,15 @@ class TurnIntake:
         sessions: SessionRepository,
         events: RecordingEventPublisher,
         timeline: SessionTimelineStore,
+        receipts: IntakeReceiptRepository,
         workbench: WorkbenchService | None = None,
     ) -> None:
         self._runner = runner
         self._sessions = sessions
         self._events = events
         self._timeline = timeline
+        self._receipts = receipts
         self._workbench = workbench
-        self._receipts: dict[tuple[UUID, str], dict[str, Any]] = {}
-        self._last_seq: dict[UUID, int] = {}
 
     def create_session(self) -> SalesSession:
         session = SalesSession()
@@ -77,9 +78,9 @@ class TurnIntake:
 
     def handle(self, session_id: UUID, command: TurnCommand) -> dict[str, Any]:
         session = self.get_session(session_id)
-        cached = self._receipts.get((session_id, command.utterance_id))
+        cached = self._receipts.get(session_id, command.utterance_id)
         if cached is not None:
-            return cached
+            return cached.payload
         if session.draft.status == "confirmed" or session.status == "confirmed":
             raise IntakeError(409, "task_completed")
         if not command.is_final:
@@ -92,12 +93,14 @@ class TurnIntake:
         if self._workbench is not None:
             self._workbench.sync(live)
         payload = self._accepted_payload(live, result)
-        self._receipts[(session_id, command.utterance_id)] = payload
-        self._last_seq[session_id] = command.seq
+        self._receipts.put(
+            IntakeReceipt(session_id=session_id, utterance_id=command.utterance_id, payload=payload)
+        )
+        self._receipts.set_last_seq(session_id, command.seq)
         return payload
 
     def _assert_seq(self, session_id: UUID, seq: int) -> None:
-        last = self._last_seq.get(session_id)
+        last = self._receipts.last_seq(session_id)
         if last is None:
             return
         if seq != last + 1:

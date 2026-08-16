@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -111,7 +111,7 @@ ai-order-clerk/
 ### 1.1 分层与依赖方向
 
 ```text
-api  →  agent  →  tools  →  services  →  models/database
+api  →  agent  →  tools  →  services  →  ports.py  →  database（InMemory | PostgreSQL）
               ↘  policy          （纯函数，只吃结构化快照）
               ↘  session
               ↘  memory/extractor → memory_service / price_memory_service
@@ -127,7 +127,7 @@ entity  ←  被 agent / policy / services / api / response 共用
 | `policy/` | 对 SpeechAct[] + 解析结果 + Profile + PriceMemory 做裁决 | 调 LLM、写库；把缺价当阻断 |
 | `memory/extractor` | 产出 MemoryCandidate | 直接落库 |
 | `response/` | 读 `ReplyPlan`，拼出口播 | 读 Catalog/PriceMemory/Session；改 `DecisionVerdict`；写 Memory/草稿 |
-| `services/` | ORM、事务、ERP Port | 调 LLM、绕过 policy 的确认闸门 |
+| `services/` | 调 Repository Port、事务边界、ERP Port | 调 LLM、绕过 policy 的确认闸门；import `app.database` / `InMemory*` |
 | `api/` | 启会话、投递 turns、投影 Timeline 与只读草稿 | 自然语言直接进 SQL；保存聊天记录；绕过 Runner/Policy；表单加行 |
 
 AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否用档案默认、能否带价、能否「好了」，以 `policy/` 的 `DecisionVerdict` 为准，模型不得否决。
@@ -376,6 +376,28 @@ erDiagram
 - `memories (mem_type, key)`
 
 种子主数据必须是**树**，不是平铺同名 SKU：水果 → 苹果/梨/榴莲 → 红富士/金边榴莲等 → 带等级产地的 sku。模糊匹配可用 `pg_trgm`。
+
+### 3.4 Persistence Ports（Sprint 10A）
+
+同一套 Repository Port，替换可重启实现。不是新业务能力。
+
+业务层只依赖 `app/services/ports.py`。禁止 import `app.database` 或 `InMemory*`。InMemory 是默认测试实现，由 `bootstrap` 组装。PostgreSQL 在 10B 只存在 `database` 层。
+
+必须覆盖：
+
+| Port | 写入内容 |
+| --- | --- |
+| Catalog | 客户、档案、`product_defaults` |
+| Alias | 长期商品别名 |
+| PriceMemory | 带有效期的价格记忆 |
+| Evidence | 确认偏好证据（结果，不是事件重放） |
+| Timeline | 业务事件投影 |
+| ProcessedEvent | 已消费 `event_id`（Extractor / Timeline 分 consumer） |
+| Workbench | 当日班次与任务索引 |
+| IntakeReceipt | `utterance_id` 幂等收据 + `seq` |
+| Session / Order | 工作态 Session 与草稿双写 |
+
+禁止启动时重放 `order.confirmed` 来恢复 Evidence。Entity 仍是领域契约。
 
 ---
 
@@ -830,6 +852,8 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8f. Sprint 7 Adaptive Memory：Session 级默认抑制（只影响本单）；确认后 `memory.preference_adjusted`；Evidence 负向 delta + 正负计数；修正事件不写 `product_default`。冻结 Parser / Resolver / `Policy.confirm_gate` / OrderService / Response。  
 8g. Sprint 8A 客户冷启动：未知客户 → 档口区分事实 → candidate 实体；确认后 observed/trusted。商品仅 ProductMention candidate，不创建 SKU、不改 Ontology。冻结 Parser / Resolver 主流程 / `confirm_gate` / OrderService / Memory 写入路径。  
 8h. Sprint 9A Workbench：当日销售任务组织；一单仍一个 SalesSession；显式 `POST /v1/workbench/tasks` 开下一单。不自动路由 `start_order`。冻结 Parser / Resolver / `confirm_gate` / OrderService / Memory / Response。  
+8i. Sprint 10A Persistence Ports：补齐 Catalog write / Alias / PriceMemory / Evidence / Timeline / Workbench / ProcessedEvent / IntakeReceipt。业务层禁止依赖 InMemory。行为完全一致。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
+8j. Sprint 10B PostgreSQL：同一套 Port 的可重启实现，只存在 database 层。Kill & Restart 后客户、Evidence、Workbench、未完成 Session 仍在。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -999,3 +1023,13 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
 第一版只做显式新任务：`POST /v1/workbench/tasks` 创建新的 `SalesSession` 并设为当前任务。不做 `start_order` 自动路由。已确认任务对 turns 只读（`task_completed`）。`paused` 预留，本阶段不实现切换到暂停。
 
 索引字段：session_id、order_id、status、customer 标签、行数、确认时间。禁止 `user_text` / 口播历史。
+
+### 14.9 Persistence Ports（Sprint 10A）
+
+目标：同一套 Port，替换可重启实现。不是 ERP，不是新业务能力。
+
+只改：`ports.py`、InMemory 对齐、业务对象改为依赖 Port。`bootstrap` 继续组装内存实现。
+
+冻结：Parser、Resolver 主流程、Policy、OrderService、Response、Memory 规则（Extractor 决策 / 阈值 / 负向债务语义）。
+
+不做：ERP、库存、支付、登录、多租户、向量库。PostgreSQL 实现见 10B。

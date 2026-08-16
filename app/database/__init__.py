@@ -1,1 +1,1 @@
-"""Sprint 1 内存持久化。Agent 不得 import 本包。"""
+"""内存持久化：InMemory 实现 Repository Port。Agent / Service 不得 import 本包。"""

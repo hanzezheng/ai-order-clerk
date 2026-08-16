@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from app.database.memory import InMemoryPriceStore
 from app.entity.context import BusinessContext, PriceRiskFact, ProfileDefaultFact
 from app.entity.session import SalesSession
-from app.services.ports import CatalogRepository
+from app.services.ports import CatalogRepository, PriceMemoryRepository
 from app.services.price_memory_service import PriceMemoryService
 
 _PRICE_TYPES = ("last_deal", "last_quote", "market_today")
@@ -12,7 +11,7 @@ _PRICE_TYPES = ("last_deal", "last_quote", "market_today")
 class ContextLoader:
     """绑客户后投影本单相关事实。未绑定则空，且不访问 Profile/PriceMemory。"""
 
-    def __init__(self, catalog: CatalogRepository, prices: InMemoryPriceStore) -> None:
+    def __init__(self, catalog: CatalogRepository, prices: PriceMemoryRepository) -> None:
         self._catalog = catalog
         self._prices = PriceMemoryService(prices)
 

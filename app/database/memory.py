@@ -3,10 +3,24 @@ from __future__ import annotations
 from uuid import UUID, uuid5, NAMESPACE_DNS
 
 from app.entity.catalog import CustomerProfile, CustomerRecord, ProductNode
-from app.entity.memory import PriceMemoryRecord
+from app.entity.intake import IntakeReceipt
+from app.entity.memory import EvidenceRecord, PriceMemoryRecord
 from app.entity.order import DraftOrder
 from app.entity.session import SalesSession
-from app.services.ports import CatalogRepository, OrderRepository, SessionRepository
+from app.entity.timeline import TimelineEvent
+from app.entity.workbench import WorkbenchShift
+from app.services.ports import (
+    AliasRepository,
+    CatalogRepository,
+    EvidenceRepository,
+    IntakeReceiptRepository,
+    OrderRepository,
+    PriceMemoryRepository,
+    ProcessedEventRepository,
+    SessionRepository,
+    TimelineRepository,
+    WorkbenchRepository,
+)
 
 
 def uid(key: str) -> UUID:
@@ -139,7 +153,7 @@ def default_profiles() -> dict[UUID, CustomerProfile]:
     }
 
 
-class InMemoryAliasStore:
+class InMemoryAliasStore(AliasRepository):
     """长期商品别名。Resolver 只读，写入必须经 MemoryService。"""
 
     def __init__(self) -> None:
@@ -159,7 +173,7 @@ class InMemoryAliasStore:
         return list(self._items)
 
 
-class InMemoryPriceStore:
+class InMemoryPriceStore(PriceMemoryRepository):
     """价格记忆。禁止被订单确认直接写入。"""
 
     def __init__(self) -> None:
@@ -222,7 +236,8 @@ class InMemorySessions(SessionRepository):
         self._items: dict[UUID, SalesSession] = {}
 
     def get(self, session_id: UUID) -> SalesSession | None:
-        return self._items.get(session_id)
+        item = self._items.get(session_id)
+        return item.model_copy(deep=True) if item is not None else None
 
     def save(self, session: SalesSession) -> None:
         self._items[session.session_id] = session.model_copy(deep=True)
@@ -236,4 +251,79 @@ class InMemoryOrders(OrderRepository):
         self._items[draft.order_id] = draft.model_copy(deep=True)
 
     def get_draft(self, order_id: UUID) -> DraftOrder | None:
-        return self._items.get(order_id)
+        item = self._items.get(order_id)
+        return item.model_copy(deep=True) if item is not None else None
+
+
+class InMemoryEvidence(EvidenceRepository):
+    def __init__(self) -> None:
+        self._items: dict[tuple[UUID, str, UUID, UUID], EvidenceRecord] = {}
+
+    def get(
+        self,
+        *,
+        customer_id: UUID,
+        kind: str,
+        node_id: UUID,
+        sku_id: UUID,
+    ) -> EvidenceRecord | None:
+        item = self._items.get((customer_id, kind, node_id, sku_id))
+        return item.model_copy(deep=True) if item is not None else None
+
+    def put(self, record: EvidenceRecord) -> None:
+        key = (record.customer_id, record.kind, record.node_id, record.sku_id)
+        self._items[key] = record.model_copy(deep=True)
+
+
+class InMemoryTimeline(TimelineRepository):
+    def __init__(self) -> None:
+        self._items: dict[UUID, list[TimelineEvent]] = {}
+
+    def list(self, session_id: UUID) -> list[TimelineEvent]:
+        return [item.model_copy(deep=True) for item in self._items.get(session_id, [])]
+
+    def append(self, event: TimelineEvent) -> TimelineEvent:
+        stored = event.model_copy(deep=True)
+        self._items.setdefault(event.session_id, []).append(stored)
+        return stored.model_copy(deep=True)
+
+
+class InMemoryProcessedEvents(ProcessedEventRepository):
+    def __init__(self) -> None:
+        self._items: set[tuple[str, UUID]] = set()
+
+    def has(self, consumer: str, event_id: UUID) -> bool:
+        return (consumer, event_id) in self._items
+
+    def mark(self, consumer: str, event_id: UUID) -> None:
+        self._items.add((consumer, event_id))
+
+
+class InMemoryWorkbench(WorkbenchRepository):
+    def __init__(self) -> None:
+        self._shift = WorkbenchShift()
+
+    def get_shift(self) -> WorkbenchShift:
+        return self._shift.model_copy(deep=True)
+
+    def save_shift(self, shift: WorkbenchShift) -> None:
+        self._shift = shift.model_copy(deep=True)
+
+
+class InMemoryIntakeReceipts(IntakeReceiptRepository):
+    def __init__(self) -> None:
+        self._receipts: dict[tuple[UUID, str], IntakeReceipt] = {}
+        self._last_seq: dict[UUID, int] = {}
+
+    def get(self, session_id: UUID, utterance_id: str) -> IntakeReceipt | None:
+        item = self._receipts.get((session_id, utterance_id))
+        return item.model_copy(deep=True) if item is not None else None
+
+    def put(self, receipt: IntakeReceipt) -> None:
+        self._receipts[(receipt.session_id, receipt.utterance_id)] = receipt.model_copy(deep=True)
+
+    def last_seq(self, session_id: UUID) -> int | None:
+        return self._last_seq.get(session_id)
+
+    def set_last_seq(self, session_id: UUID, seq: int) -> None:
+        self._last_seq[session_id] = seq

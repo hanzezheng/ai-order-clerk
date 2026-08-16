@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.database.memory import InMemoryPriceStore
 from app.entity.memory import PriceMemoryRecord, PriceMemoryType
 from app.entity.price import PriceQuote
+from app.services.ports import PriceMemoryRepository
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class PriceLookup:
 class PriceMemoryService:
     """只查询。静默套 last_deal / 过期价由调用方禁止。"""
 
-    prices: InMemoryPriceStore
+    prices: PriceMemoryRepository
 
     def lookup(
         self,

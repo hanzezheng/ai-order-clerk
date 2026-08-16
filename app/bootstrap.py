@@ -4,7 +4,16 @@ from dataclasses import dataclass
 
 from app.agent.parser import TurnParser
 from app.agent.turn_parser import RuleTurnParser
-from app.database.memory import InMemoryCatalog, InMemoryOrders, InMemorySessions
+from app.database.memory import (
+    InMemoryCatalog,
+    InMemoryEvidence,
+    InMemoryIntakeReceipts,
+    InMemoryOrders,
+    InMemoryProcessedEvents,
+    InMemorySessions,
+    InMemoryTimeline,
+    InMemoryWorkbench,
+)
 from app.entity.events import RecordingEventPublisher
 from app.entity.session import SalesSession
 from app.memory.extractor import MemoryExtractor
@@ -41,13 +50,14 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
     sessions = InMemorySessions()
     orders = InMemoryOrders()
     events = RecordingEventPublisher()
-    timeline = SessionTimelineStore()
-    workbench = WorkbenchService()
+    processed = InMemoryProcessedEvents()
+    timeline = SessionTimelineStore(InMemoryTimeline(), processed)
+    workbench = WorkbenchService(InMemoryWorkbench())
     ontology = OntologyService(catalog)
     customers = CustomerService(catalog)
     order_service = OrderService(orders, ontology, events)
-    evidence = EvidenceStore()
-    extractor = MemoryExtractor(evidence=evidence, ontology=ontology)
+    evidence = EvidenceStore(InMemoryEvidence())
+    extractor = MemoryExtractor(evidence=evidence, processed=processed, ontology=ontology)
     policy = DecisionPolicy(ontology)
     runner = SalesSessionRunner(
         parser=parser or RuleTurnParser(),
@@ -71,6 +81,7 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
         sessions=sessions,
         events=events,
         timeline=timeline,
+        receipts=InMemoryIntakeReceipts(),
         workbench=workbench,
     )
     return AppWorld(

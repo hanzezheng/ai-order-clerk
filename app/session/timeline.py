@@ -6,36 +6,34 @@ from app.entity.events import DomainEvent
 from app.entity.issue import Issue
 from app.entity.session import SalesSession
 from app.entity.timeline import TimelineEvent, sanitize_timeline_payload
+from app.services.ports import TIMELINE_CONSUMER, ProcessedEventRepository, TimelineRepository
 
 
 class SessionTimelineStore:
     """按会话追加业务事件。禁止当作聊天记录。"""
 
-    def __init__(self) -> None:
-        self._items: dict[UUID, list[TimelineEvent]] = {}
-        self._seen_domain: set[UUID] = set()
+    def __init__(self, events: TimelineRepository, processed: ProcessedEventRepository) -> None:
+        self._events = events
+        self._processed = processed
 
     def list(self, session_id: UUID) -> list[TimelineEvent]:
-        return [item.model_copy(deep=True) for item in self._items.get(session_id, [])]
+        return self._events.list(session_id)
 
     def append(self, event: TimelineEvent) -> TimelineEvent:
         event.payload = sanitize_timeline_payload(event.payload)
-        bucket = self._items.setdefault(event.session_id, [])
-        stored = event.model_copy(deep=True)
-        bucket.append(stored)
-        return stored
+        return self._events.append(event)
 
     def project_domain(self, session: SalesSession, events: list[DomainEvent]) -> None:
         order_id = session.draft.order_id
         for event in events:
-            if event.event_id in self._seen_domain:
+            if self._processed.has(TIMELINE_CONSUMER, event.event_id):
                 continue
             payload = event.payload or {}
             belongs = str(payload.get("session_id", "")) == str(session.session_id)
             belongs = belongs or event.aggregate_id == order_id
             if not belongs:
                 continue
-            self._seen_domain.add(event.event_id)
+            self._processed.mark(TIMELINE_CONSUMER, event.event_id)
             self.append(
                 TimelineEvent(
                     event_id=event.event_id,

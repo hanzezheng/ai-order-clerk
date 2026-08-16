@@ -50,3 +50,15 @@ class MemoryCandidate(BaseModel):
     evidence_count: int = 0
     status: MemoryStatus = "pending"
     last_confirmed_at: datetime | None = None
+
+
+class EvidenceRecord(BaseModel):
+    customer_id: UUID
+    kind: str
+    node_id: UUID
+    sku_id: UUID
+    count: int = 0
+    positive_count: int = 0
+    negative_count: int = 0
+    status: MemoryStatus = "pending"
+    last_confirmed_at: datetime | None = None

@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from app.database.memory import InMemoryAliasStore
 from app.entity.catalog import ProductMention, ProductNode
 from app.services.catalog_service import OntologyService
-from app.services.ports import CatalogRepository
+from app.services.ports import AliasRepository, CatalogRepository
 
 
 class ProductResolver:
     """product_mention → ProductMention。只识别，不写 Memory，不套档案默认。"""
 
-    def __init__(self, catalog: CatalogRepository, aliases: InMemoryAliasStore) -> None:
+    def __init__(self, catalog: CatalogRepository, aliases: AliasRepository) -> None:
         self._catalog = catalog
         self._aliases = aliases
         self._ontology = OntologyService(catalog)

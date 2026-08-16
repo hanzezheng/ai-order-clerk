@@ -9,6 +9,7 @@ from app.entity.session import SalesSession
 from app.entity.speech import SpeechAct
 from app.memory.evidence import EvidenceStore
 from app.services.catalog_service import OntologyService
+from app.services.ports import MEMORY_EXTRACTOR_CONSUMER, ProcessedEventRepository
 
 
 class MemoryExtractor:
@@ -17,12 +18,13 @@ class MemoryExtractor:
     def __init__(
         self,
         *,
-        evidence: EvidenceStore | None = None,
+        evidence: EvidenceStore,
+        processed: ProcessedEventRepository,
         ontology: OntologyService | None = None,
     ) -> None:
-        self._evidence = evidence or EvidenceStore()
+        self._evidence = evidence
+        self._processed = processed
         self._ontology = ontology
-        self._seen: set[UUID] = set()
 
     def extract(self, act: SpeechAct, session: SalesSession) -> list[MemoryCandidate]:
         """旧入口：SpeechAct 不得写长期记忆。"""
@@ -34,7 +36,7 @@ class MemoryExtractor:
         confirmed: list[DomainEvent] = []
         adjusted: list[DomainEvent] = []
         for event in events:
-            if event.event_id in self._seen:
+            if self._processed.has(MEMORY_EXTRACTOR_CONSUMER, event.event_id):
                 continue
             if event.aggregate_id != order_id:
                 continue
@@ -43,10 +45,10 @@ class MemoryExtractor:
             elif event.event_type == PREFERENCE_ADJUSTED:
                 adjusted.append(event)
         for event in confirmed:
-            self._seen.add(event.event_id)
+            self._processed.mark(MEMORY_EXTRACTOR_CONSUMER, event.event_id)
             out.extend(self._from_confirmed_draft(session))
         for event in adjusted:
-            self._seen.add(event.event_id)
+            self._processed.mark(MEMORY_EXTRACTOR_CONSUMER, event.event_id)
             out.extend(self._from_preference_adjusted(event))
         return out
 

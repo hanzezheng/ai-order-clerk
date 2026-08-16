@@ -264,6 +264,39 @@ def test_default_pytest_does_not_enable_live(monkeypatch):
     assert live_llm_enabled() is False
 
 
+def test_client_error_records_detail_in_raw():
+    case = ParserEvaluationCase(
+        id="explicit-price",
+        text="苹果按3块",
+        expected_acts=[{"type": "set_price", "slots": {"product_mention": "苹果", "unit_price": 3}}],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(error=RuntimeError("client_error:http_429"))
+    )
+    report = LanguageBenchmark().evaluate(
+        [case], parser, mode="live", model="qwen-probe", capture=capture
+    )
+    row = report.records[0]
+    assert row.fallback is True
+    assert row.fallback_reason == "client_error"
+    assert row.raw == "client_error:http_429"
+    assert row.model_pass is False
+    assert row.taxonomy == "fallback_to_rule"
+
+
+def test_live_pause_only_for_http_client(monkeypatch):
+    from app.agent.evaluation import CaptureLlmClient, _live_http_pause
+    from app.agent.llm_client import HttpLlmClient
+
+    monkeypatch.setenv("LLM_EVAL_PAUSE", "0.4")
+    http = CaptureLlmClient(HttpLlmClient(api_key="k", base_url="http://example/v1", model="m"))
+    fake = CaptureLlmClient(FakeLlmClient(default={"acts": []}))
+    assert _live_http_pause("live", http) == 0.4
+    assert _live_http_pause("fake", http) == 0.0
+    assert _live_http_pause("live", fake) == 0.0
+    assert _live_http_pause("live", None) == 0.0
+
+
 def test_add_item_on_open_order_counts_as_model_pass():
     case = ParserEvaluationCase(
         id="open-wang-apple",

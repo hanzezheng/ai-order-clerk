@@ -4,8 +4,6 @@ from os import environ
 
 from dataclasses import dataclass
 
-from sqlalchemy.engine import Engine
-
 from app.agent.default_parser import build_default_parser
 from app.agent.parser import TurnParser
 from app.database.bundle import PersistenceBundle
@@ -56,7 +54,7 @@ class AppWorld:
     intake: TurnIntake
     workbench: WorkbenchService
     outbox: OutboxRepository
-    engine: Engine | None = None
+    engine: object | None = None
 
 
 def memory_bundle(uow: InMemoryUnitOfWork | None = None) -> PersistenceBundle:
@@ -82,7 +80,7 @@ def assemble_world(
     bundle: PersistenceBundle,
     parser: TurnParser | None = None,
     *,
-    engine: Engine | None = None,
+    engine: object | None = None,
     uow: UnitOfWork | None = None,
 ) -> AppWorld:
     unit = uow or InMemoryUnitOfWork()

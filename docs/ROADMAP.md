@@ -17,7 +17,7 @@ Voice-first 行业 AI Agent。当前垂直：农批开单员。路线服从 `doc
 
 验收见 DESIGN §13：30 秒连报、中途改口、同名客户、层级歧义、缺价不中断。
 
-是否进入真 ASR/TTS 仍以 [VALIDATION.md](VALIDATION.md) 的行为指标为准，**另批**。Sprint 6B 改为 Learning Memory Loop（确认事件学习），不是语音。
+是否进入真 ASR/TTS 仍以 [VALIDATION.md](VALIDATION.md) 的行为指标为准，**另批**。阶段 1 稳定合并节点：`v0.1-learning-agent`（开单能力 + 记忆学习 + Notice + Demo）。Sprint 7 进入 Adaptive Memory（确认后的偏好修正），不是语音。
 
 ## 阶段 2：真实业务连接
 

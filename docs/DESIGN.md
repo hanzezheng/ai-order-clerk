@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -590,11 +590,15 @@ category     水果 / 蔬菜 / …
 
 - 种子/主数据：档口、电话、价格档。
 - Extractor 允许：多次确认单后同一「苹果→某 sku」→ `product_default` 候选（建议阈值 ≥ 3 张已确认单，POC 可先只种子、不自动写）。
-- Extractor 禁止：把本单 60 件写成「他每次 60」；一次澄清「今天拿青苹果」写成永久默认（除非用户明确「以后都拿这个」—— 第一阶段无此意图则一律不写）。
+- Extractor 禁止：把本单 60 件写成「他每次 60」；从用户原话 / 未确认改口写成永久默认。纠错只来自确认后的业务事实。
 
 ### 7.3 使用规则
 
-回填必须在回复里**可见**：例如「苹果按您常拿的红富士 80#」。用户下句否定（「不要红富士」）→ 清该行默认、改 pending，本单不再用该 default。
+回填必须在回复里**可见**：例如「苹果按您常拿的红富士 80#」。
+
+本单行落地 SKU ≠ 档案该品种默认（含下句否定默认）→ **Session 抑制**该品种 `product_default`：本 Session 内 `fill_sku` 不再套该 default。Session 抑制属于**当前订单状态**，只影响本单，**不写**长期记忆。
+
+长期默认的改写仍走确认证据（见 §10）：修正事件不得直接写 `product_default`。
 
 ---
 
@@ -730,28 +734,40 @@ verdict + session snapshot + changed_line_ids
 
 ---
 
-## 10. Memory Extractor（Sprint 6B 学习闭环）
+## 10. Memory Extractor（确认学习 + Sprint 7 修正）
 
-长期记忆**只**从确认后的领域事件学习，禁止从用户原话 / SpeechAct 原文写入。
+长期记忆**只**从确认后的领域事件学习，禁止从用户原话 / SpeechAct 原文写入。纠错同样只来自确认后的业务事实，禁止用原话改 Memory。
 
 ```text
 order.confirmed（Domain Event）
   → Extractor（只读草稿结构化字段：客户 id、行 SKU、价源、品种节点）
-  → Evidence（偏好计数；未达阈值不升级）
-  → MemoryPolicy
+  → Evidence（成交 SKU 正向计数）
+  → 若成交 SKU ≠ 档案该品种默认：
+        发布 memory.preference_adjusted（仅结构化字段）
+        → Extractor 对 from_sku 负向调整
+        → MemoryPolicy：修正事件禁止写 product_default
+  → MemoryPolicy（写 default 仍仅 order.confirmed 且 evidence ≥ 阈值）
   → Storage
 ```
 
 LLM **不得**参与 Memory 写入决策。`LLMTurnParser` 仍只是可替换语言入口（Sprint 3），失败回退规则 Parser。默认装配仍是规则 Parser。
 
+`memory.preference_adjusted` payload **只**含：
+
+`customer_id` / `node_id` / `from_sku_id` / `to_sku_id` / `order_id`
+
+禁止 `user_text` / `raw_text` / 聊天原文。未确认改口不发此事件。最终 SKU 仍等于档案默认则不发。
+
 | 候选类型 | 可写条件 | 禁止 |
 | --- | --- | --- |
 | last_deal | `order.confirmed` 且该行 `price.source=explicit`、已到 sku | TBD 行、未确认、用户原话 |
-| product_default | 同客户+品种+SKU 的确认证据 `count ≥ 3`，再升级档案 | 单次改口、未确认、未到 sku |
+| product_default | 同客户+品种+SKU 的**确认**证据净 `count ≥ 3`，再升级档案 | 单次改口、未确认、未到 sku、`preference_adjusted` 直接写 default |
 | last_quote / alias / preferred_uom / market_today | 本阶段不从事件自动写 | — |
 | 当笔数量、好了、开单、聊天原文 | — | 一律 ignore |
 
-Evidence 与 Memory 记录预留生命周期：`status ∈ {pending, active, retired}`、`last_confirmed_at`。本阶段不做复杂衰减：未达阈值保持 `pending`，写入后为 `active`。
+原则：一次纠正影响本单（Session 抑制）；确认后的纠正影响证据；多次同向确认才影响长期默认。
+
+Evidence：可用 `delta` 调整。记录 `positive_count` / `negative_count`（或等价），净 `count = max(0, positive_count - negative_count)`，禁止净计数为负。低于阈值 `status=pending`。本阶段不做复杂衰减。
 
 读侧不变：`last_deal` 只进 notice，禁止静默改行价。Extractor 不得读取 `user_text` / `raw_text` / 聊天。
 
@@ -783,11 +799,12 @@ Evidence 与 Memory 记录预留生命周期：`status ∈ {pending, active, ret
 8b. Sprint 6A-UX：Demo 改为老板可理解的 Voice-first 开单员（按住说话、只读订单、开发模式）。不改内核。  
 8c. Sprint 6A.5 Demo Pack：快捷示例、口播只展示 `reply_text`、自然引导 30 秒剧本、开发模式仅 `?dev=1`、可启动 Demo 端口。不改内核。  
 8d. Sprint 6A.6：行为迁移实验（`docs/VALIDATION.md`）。  
-8e. Sprint 6B Learning Memory Loop：确认事件 → Extractor → Evidence → MemoryPolicy → Storage。LLM 不写记忆。不上 ASR/TTS。  
+8e. Sprint 6B Learning Memory Loop：确认事件 → Extractor → Evidence → MemoryPolicy → Storage。LLM 不写记忆。不上 ASR/TTS。合并节点 `v0.1-learning-agent`。  
+8f. Sprint 7 Adaptive Memory：Session 级默认抑制（只影响本单）；确认后 `memory.preference_adjusted`；Evidence 负向 delta + 正负计数；修正事件不写 `product_default`。冻结 Parser / Resolver / `Policy.confirm_gate` / OrderService / Response。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
-12. Sprint 6B（未批准）：真 ASR / TTS，仍走同一 turns 契约  
+12. 真 ASR / TTS（未批准，另批），仍走同一 turns 契约  
 
 ---
 
@@ -876,7 +893,7 @@ Demo 输入 / 以后 ASR
 - ReminderAgent
 - 登录 / 多租户
 - 用 LangGraph 重写开单内核
-- ASR / TTS（6B）
+- ASR / TTS（另批，不以技术完成度为绿灯）
 
 ### 14.3 Demo 验收
 
@@ -927,3 +944,11 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
 **可访问环境：** `.cursor/environment.json` 声明 Demo 端口 8000，并用 terminals 拉起 `uvicorn`。本机需 Python 3.12+。不提供公网托管。
 
 **非技术用户验收：** 打开 `/` 后 10 秒内能发现「按住说话」与「开李老板的单」；按剧本 30 秒内确认一单，回复含「价未定」，且含档案事实（红富士 / 按档案）。
+
+### 14.6 Adaptive Memory（Sprint 7）
+
+从确认后的业务结果学习「修正」，不是从原话覆盖记忆。
+
+只改：Session 抑制、`memory.preference_adjusted`、Evidence 正负计数、MemoryPolicy 修正规则、`fill_sku` 用档。
+
+冻结：Parser、Resolver 主流程、`Policy.confirm_gate`、OrderService、Response。不做 ASR / TTS / ERP / 新 Agent。

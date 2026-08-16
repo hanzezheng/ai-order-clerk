@@ -1,0 +1,16 @@
+---
+description: DESIGN.md 是唯一设计依据；缺陷先改设计再改代码；架构决策必须写 ADR
+alwaysApply: true
+---
+
+# 设计依据与变更流程
+
+- 唯一设计依据是 `docs/DESIGN.md`。实现、重构、加字段前先读对应章节。
+- 发现设计缺陷：先改 `docs/DESIGN.md`，再改代码。禁止先写临时实现再补文档。
+- 不允许把「先跑通再说」的捷径当成长期架构（例如单意图、澄清即停图、alias 全局唯一、Agent 直连 SQL）。
+- 重要架构决策写入 `docs/adr/NNNN-kebab-title.md`（状态、上下文、决策、后果）。ADR 不得与 DESIGN.md 打架；冲突时先改 DESIGN 再改 ADR。
+
+```text
+❌ 为了 demo 把「苹果」做成扁平 SKU，DESIGN 仍写本体树
+✅ 先修订 DESIGN §6，再改 entity / ORM
+```

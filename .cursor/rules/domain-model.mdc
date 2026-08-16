@@ -1,0 +1,23 @@
+---
+description: 禁止为了快速实现破坏农批领域模型
+alwaysApply: true
+---
+
+# 领域模型完整性
+
+农批开单不是零售点餐。禁止用更简单的错误模型换速度。
+
+必须保留（见 DESIGN.md）：
+
+- 商品本体树：`category → variety → cultivar → sku`，口语可打在任意层
+- 开单单位与计价单位分离；无换算因子不得估算件重
+- 客户 `display_name` 不唯一；同名必须消歧
+- 一回合 `TurnParse.acts[]`，不是单一 Intent
+- Issue 分级：`session_block | line_hold | notice`；缺价是 notice
+- 行身份是 `line_id`；解析升级不得裂行
+
+```text
+❌ products.name 当唯一 SKU；「王老板」当唯一客户键
+❌ 一句只抽一个意图，后半句丢掉
+✅ SpeechAct 按序执行；歧义行 hang 在节点上继续收货
+```

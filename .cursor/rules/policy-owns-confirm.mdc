@@ -1,0 +1,19 @@
+---
+description: Policy 负责确认与澄清裁决；LLM 不得改写
+globs: app/policy/**/*.py
+alwaysApply: false
+---
+
+# Policy 确认逻辑
+
+`app/policy/` 是确定性纯函数：输入结构化快照，输出 `DecisionVerdict`。禁止调 LLM、禁止写库。
+
+- 「好了」能否确认只看 `confirm_gate`（客户已绑、行到履约 sku、无 session_block/line_hold）。
+- `price_mode=qty_first_price_optional` 时 `price_tbd` 是 `notice`，不得变成 `session_block`。
+- `expect_more=true` 时不得把规格/价格问题打成打断追问。
+- `OrderService.confirm_draft` 必须再执行同一闸门，不信任图里的旧 verdict。
+
+```text
+❌ prompt 里写「如果看起来可以就确认」
+✅ confirm_ok = confirm_gate(snapshot)；LLM 只生成 reply 文案
+```

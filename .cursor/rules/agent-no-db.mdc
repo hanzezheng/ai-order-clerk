@@ -1,0 +1,23 @@
+---
+description: Agent/LLM 不得直连数据库，也不得决定业务规则
+globs: app/agent/**/*.py
+alwaysApply: false
+---
+
+# Agent 边界
+
+`app/agent/` 只读 `entity`、调 `tools`、维护 GraphState。
+
+- 禁止 `import` `app.models`、`app.database`，禁止写 SQL/Session。
+- 图节点只发 `ServiceCommand`；落库只走 `app/services/`。
+- LLM 只抽取 `TurnParse.acts[]`（品名、数量、价的**提及**）。
+- 能否默认 SKU、能否确认、缺价是否打断、同名客户选谁：一律交给 `app/policy/`，模型不得否决 `DecisionVerdict`。
+
+```python
+# ❌ BAD
+db.query(Order).filter(...).update({"status": "confirmed"})
+
+# ✅ GOOD
+commands.append(ServiceCommand(name="confirm_draft", payload={"order_id": oid}))
+# confirm_draft 内部再跑 policy.confirm_gate
+```

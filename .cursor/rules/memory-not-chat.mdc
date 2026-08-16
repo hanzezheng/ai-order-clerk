@@ -1,0 +1,19 @@
+---
+description: Memory 不是聊天记录；必须经 Extractor 闸门
+globs: app/memory/**/*.py
+alwaysApply: false
+---
+
+# Memory 不是聊天记录
+
+长期记忆只存跨会话稳定知识：别名、档案默认、带过期的价格。禁止把 `session_turns` 全文当记忆检索源。
+
+- Extractor 默认输出空；LLM 只建议，规则闸门否决则不写。
+- 禁止写入：当笔数量、「好了」、口误、未解析提及、`price_tbd`、整句 `user_text`。
+- `last_deal` 仅确认且价为 `explicit` 的行；行情必须有 `valid_until`。
+- 写入只走 `MemoryService` / `PriceMemoryService`，Extractor 不落库。
+
+```text
+❌ embeddings(chat_log) 当「王老板爱买苹果」
+✅ 确认单达阈值后才建议 product_default；数量一律 ignore
+```

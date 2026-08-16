@@ -1,0 +1,30 @@
+# AI 农批开单员 — 项目规则（最高优先级）
+
+你正在开发 Voice-first 行业 AI Agent。本文件对所有 AI 辅助开发强制生效。
+
+## 设计依据
+
+1. `docs/DESIGN.md` 是项目最高设计依据。实现、重构、加字段前必须先读对应章节。
+2. 修改核心架构之前：必须先修改 `docs/DESIGN.md`，再改代码。发现设计缺陷同样：先 DESIGN，后代码。
+3. 不允许为了快速实现破坏领域模型（禁止扁平 SKU、单意图、全局唯一客户名、澄清即停图等捷径当成长期架构）。
+4. 重大架构决策必须写入 `docs/ADR/`，且不得与 DESIGN.md 打架。
+
+## 技术边界
+
+5. LLM 不能直接决定业务规则。LLM 只理解语言、抽取 `SpeechAct[]`。是否询问、是否自动执行、是否确认由 Policy 决定。
+6. LLM 不能直接访问数据库。禁止在 prompt 或 Agent 节点里拼 SQL。
+7. Agent 不允许直接操作 ORM，禁止 import `app.models` / `app.database`。
+8. 所有业务执行必须：
+
+```
+Agent → Tool → Service → Repository → Database
+```
+
+## 上下文与记忆
+
+9. Memory 不是聊天记录。必须 Extract → Policy 审核 → Storage。禁止把全部聊天、临时数量、一次性口误当记忆。
+10. Session 是业务任务上下文（当前 SalesSession），不是 IM 会话。必须考虑未来 Purchase / Payment / Inventory 等扩展，禁止在销售确认里扣库存或收款。
+
+## 扩展
+
+11. 所有新增功能必须考虑未来行业扩展（农批 → 装修 / 汽修 / 物流），共享 SpeechAct、Memory、Policy、Entity Resolver，不把行业特例写死进 Agent 图。

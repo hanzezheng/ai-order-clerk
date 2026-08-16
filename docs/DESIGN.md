@@ -6,6 +6,16 @@
 
 仓库根目录即项目根目录（GitHub 仓库已名为 `ai-order-clerk`），不再套一层同名文件夹。
 
+配套文档（本文件仍是最高设计依据）：
+
+| 文件 | 用途 |
+| --- | --- |
+| [ROADMAP.md](ROADMAP.md) | 产品阶段 |
+| [DOMAIN.md](DOMAIN.md) | 农批业务知识 |
+| [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md) |
+| `/.cursorrules` | AI 辅助开发强制规则 |
+
 ---
 
 ## 0. 农批特殊性（评审结论）

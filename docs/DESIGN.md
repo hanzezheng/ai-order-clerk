@@ -13,6 +13,7 @@
 | [ROADMAP.md](ROADMAP.md) | 产品阶段 |
 | [DOMAIN.md](DOMAIN.md) | 农批业务知识 |
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
+| [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 

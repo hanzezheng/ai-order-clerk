@@ -1139,7 +1139,7 @@ Fake 测 Runtime；live 测模型是否抽对 SpeechAct。规则兜底成功不�
 Voice → ASR final text → POST /v1/sessions/{id}/turns → 现有 Runtime → TTS 念 reply_text
 ```
 
-Adapter 在 `TurnIntake` 之外：PTT 状态机、AsrPort、TtsPort。音频不到 Runtime。ASR 只交 final；partial 可画「正在听」，禁止进业务。TTS 禁止再生成。`expect_more` 由壳填：普通 PTT 默认 true；「好了」/结束词表为 false。禁止 VAD 当确认，禁止 LLM 参与语音控制。
+Adapter 在 `TurnIntake` 之外：`app/voice/`（AsrPort、TtsPort、VoiceController）。音频不到 Runtime。ASR 只交 final；partial 可画「正在听」，禁止进业务。TTS 禁止再生成。`expect_more` 由壳填：普通 PTT 默认 true；「好了」/结束词表为 false。禁止 VAD 当确认，禁止 LLM 参与语音控制。CI 用 FakeAsr/FakeTts；浏览器可选用 SpeechRecognition / speechSynthesis，云端可选 `ASR_URL` / `TTS_URL`。
 
 合格：同一 text 序列的 Text/Voice 草稿与闸门等价；真机脚本分类 ASR/ADAPTER/RUNTIME。细则 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)、[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)。
 

@@ -2,7 +2,7 @@
 
 标题：语音只做 Adapter；ASR/TTS 不得进入 Runtime
 
-- 状态：proposed
+- 状态：accepted
 - 日期：2026-08-16
 
 ## 背景

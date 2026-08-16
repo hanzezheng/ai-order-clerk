@@ -483,9 +483,11 @@ partial 若仅用于 UI，可以在内存里暂存同一 `utterance_id`，但它
 - 「好了」成功后，下一句货不得写进旧 session（409 或 Controller 先开新单）。
 - 新单草稿为空。
 
-**E8 一张嘴**
+**E9 ASR 错误隔离**
 
-- UI 渲染函数不得出现按 draft 拼的确认句（现有 `test_demo_flow` 已锁若干违禁文案，语音壳保持）。
+- ASR 输出什么，`TurnCommand.text` 就是什么（只允许 trim）。
+- 禁止语音层把「六十五」改成 `65`、把「金枕」改成「金边」、补 `sku_id` / `product_mention`。
+- HttpAsrPort 若收到 `is_final=false`，必须变成 empty，不得出站。
 
 ### 5.3 不测什么
 
@@ -614,12 +616,12 @@ V0.4 壳 **设计验收**（实现后）：
 仍不在本文件写代码。顺序只约束以后的实现 PR：
 
 ```text
-1. AsrPort / TtsPort + Fake
-2. VoiceController 状态机 + 字段策略
-3. §5 等价测试（先红后绿）
-4. Demo 从「每句 expect_more=false 的模拟麦」迁到同一 Controller
-5. 接真 ASR / TTS（可配置，CI 默认 Fake）
-6. 按 §6 真机打勾
+1. AsrPort / TtsPort + Fake          ✅ `app/voice/`
+2. VoiceController 状态机 + 字段策略 ✅
+3. §5 等价测试（E1–E9）              ✅ `app/tests/test_voice_adapter.py`
+4. Demo 迁到同一 Controller          ✅ `voice-controller.js`
+5. 接真 ASR / TTS（可配置，CI 默认 Fake）✅ 浏览器 SpeechRecognition / speechSynthesis；可选 `ASR_URL` / `TTS_URL`
+6. 按 §6 真机打勾                    真机主持人脚本，不在 CI
 ```
 
 任一步需要改冻结内核才能「好演示」→ **停**，回设计，不改闸门。

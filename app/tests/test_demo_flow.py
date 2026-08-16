@@ -31,6 +31,9 @@ def test_demo_page_first_run_is_obvious_in_ten_seconds():
 
 def test_demo_page_has_one_mouth_from_backend_reply_text():
     html = _client().get("/").text
+    assert "voice-controller.js" in html
+    assert "expect_more: false" not in html
+    assert "source: \"text\"" not in html
     assert "reply_text" in html
     assert "bossSpeak" not in html
     assert "friendlyBoss" not in html

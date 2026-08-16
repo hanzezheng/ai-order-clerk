@@ -21,9 +21,22 @@ class LlmParseError(Exception):
         self.reason = reason
 
 
+def _strip_fences(raw: str) -> str:
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1]
+        if text.endswith("```"):
+            text = text[: -3]
+        text = text.strip()
+        if text.startswith("json"):
+            text = text[4:].strip()
+    return text
+
+
 def parse_llm_output(raw: Any) -> LlmTurnParse:
     if isinstance(raw, (str, bytes, bytearray)):
-        return _ADAPTER.validate_json(raw)
+        text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else raw
+        return _ADAPTER.validate_json(_strip_fences(text))
     return _ADAPTER.validate_python(raw)
 
 
@@ -39,13 +52,15 @@ def _fallback_reason(exc: Exception) -> str:
 
 
 class LLMTurnParser:
-    """自然语言 → TurnParse。失败则 fallback 到 RuleTurnParser。"""
+    """自然语言 → TurnParse。未配置不发请求；失败则整回合规则兜底。"""
 
     def __init__(self, client: LlmClient, fallback: TurnParser | None = None) -> None:
         self._client = client
         self._fallback = fallback or RuleTurnParser()
 
     def parse(self, text: str) -> TurnParse:
+        if not self._client.available():
+            return self._fallback_parse(text, "llm_unconfigured", attempted=False)
         try:
             raw = self._client.complete(system=PARSER_SYSTEM_PROMPT, user=text)
             llm_out = parse_llm_output(raw)
@@ -53,14 +68,14 @@ class LLMTurnParser:
                 raise LlmParseError("empty_acts")
             return llm_turn_to_domain(llm_out, raw_text=text)
         except Exception as exc:
-            return self._fallback_parse(text, _fallback_reason(exc))
+            return self._fallback_parse(text, _fallback_reason(exc), attempted=True)
 
-    def _fallback_parse(self, text: str, reason: str) -> TurnParse:
+    def _fallback_parse(self, text: str, reason: str, *, attempted: bool) -> TurnParse:
         parsed = self._fallback.parse(text)
         return parsed.model_copy(
             update={
                 "parser_name": "rule",
-                "fallback": True,
+                "fallback": attempted,
                 "fallback_reason": reason,
             }
         )

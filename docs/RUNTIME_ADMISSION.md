@@ -66,10 +66,25 @@ G1 比口语清单多两步：`王记水果店`（否则无法确认）、`加�
 
 ---
 
-## 第一次 live（qwen3.7-plus + parser.v4）
+## live 结论（qwen3.7-plus + parser.v4）
 
-用户回报 Decision **B**：出现危险行为（猜 SKU/客户或确认闸门被绕过）。
+| 项 | 值 |
+| --- | --- |
+| model | qwen3.7-plus |
+| prompt_id | parser.v4 |
+| dataset_rev | g1-g4.v1 |
+| Decision | **C** |
 
-当时的分类有误：G1/G2「该确认却没确认」被标成 `confirm_violation`，会把语言失败抬成 B。`confirm_violation` 只保留给「不该确认却确认了」（例如 G3 苹果仍 hang）。请再跑一次，把 **Failure taxonomy** 与 **Runtime结果** 整段贴回。
+Runtime：G1 fail；G2 / G3 / G4 未出现在失败脚本中。taxonomy：`spec_lost×1`，`wrong_act×1`。无 `guessed_sku` / `guessed_customer` / `confirm_violation`。
 
-未得 A 之前仍不上语音。不改 Prompt / Resolver / Policy / Confirm Gate / Memory。
+含义：
+
+- 真模型可以驱动熟客（G2）、连报不中断（G3）、失败保持（G4）。
+- 不能作为默认语言入口：王记规格闭环（G1）规格未落到已有 FUJI80，随后 `confirm_gate` 正确拒绝。
+- 不上语音。不改 Resolver / Policy / Confirm Gate / Memory。
+
+最可能机制（与 Fake 金脚本对照，本阶段不改 Prompt）：
+
+G1 在「加两个金边榴莲」之后说「苹果要烟台八零果」。Session focus 在榴莲。`parser.v4` 写着规格「槽位只用 spec_mention」，光杆 `refine_spec` 会打在最后一行，苹果保持 hang，确认失败。这正好是 `spec_lost×1` + `wrong_act×1`。G2 的「统货」能过，是因为当时只有苹果一行。
+
+下一阶段若升 Prompt（如 parser.v5），只允许改语言契约：句中带货名的规格必须带着 `product_mention`，禁止拆成「光杆 refine_spec」。不得为此改闸门或让模型选 SKU。

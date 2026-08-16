@@ -30,5 +30,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/AI_RULES.md](docs/AI_RULES.md) | Agent 行为规范 |
 | [docs/AI_DEVELOPMENT_GUIDE.md](docs/AI_DEVELOPMENT_GUIDE.md) | Cursor 正式开发 Master Prompt |
 | [docs/VALIDATION.md](docs/VALIDATION.md) | 行为迁移实验与 6B 进入条件 |
+| [docs/V04_VOICE_ADAPTER.md](docs/V04_VOICE_ADAPTER.md) | V0.4 语音壳设计（Adapter，不改内核） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

@@ -17,7 +17,8 @@
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
 | [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) | V0.3C 农批语言分层评测、商品理解缺口、复杂订单金脚本、V0.4 准入 |
 | [MODEL_EVAL.md](MODEL_EVAL.md) | V0.3D 真模型评测：接入、运行、Fake 对照、Prompt 版本、指标与失败记录 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md) |
+| [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md) | V0.4 Voice Adapter：架构、ASR/TTS 边界、PTT 状态机、turns 字段策略、Text/Voice 等价、真机脚本 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -871,10 +872,11 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8m. V0.3B Product Understanding：`SpeechAct → ProductQuery → Resolver`。规格只做 size/grade/origin/packing；唯一命中提升已有 SKU 节点。`confirm_gate` 不改。不建 SKU、不学 Ontology、不接 ERP、不上 Vector DB。  
 8n. V0.3C 农批语言能力：分层 Benchmark + 复杂订单金脚本；量缺口不新做 Agent。`confirm_gate` 不改。不上 ASR / ERP / Vector DB，不自动建 SKU。准入见 [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md)。  
 8o. V0.3D 真模型评测：同一 `LLMTurnParser` 入口跑 live；Qwen/GPT 只换兼容端点。默认 CI 不发请求。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。见 [MODEL_EVAL.md](MODEL_EVAL.md)。  
+8p. V0.4 Voice Adapter：ASR final → 现有 turns → TTS 念 `reply_text`。不改 Parser / Understanding / Resolver / Policy / Confirm Gate / OrderService / Memory / Response。见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
-12. 真 ASR / TTS（未批准，另批），仍走同一 turns 契约  
+12. ERP Adapter（阶段 2，另批），不推翻开单图  
 
 ---
 
@@ -1128,3 +1130,19 @@ Fake 测 Runtime；live 测模型是否抽对 SpeechAct。规则兜底成功不�
 禁止：ASR / TTS / ERP / Vector DB / LLM 选 SKU / LLM 写 Memory / 评测专用图。
 
 冻结：Resolver、Policy、OrderService、Memory、Response、Outbox。
+
+### 14.16 Voice Adapter（V0.4）
+
+目标：按住说话开单。语音只替换 `text` 来源与 `reply_text` 播出。不是新 Agent。
+
+```text
+Voice → ASR final text → POST /v1/sessions/{id}/turns → 现有 Runtime → TTS 念 reply_text
+```
+
+Adapter 在 `TurnIntake` 之外：PTT 状态机、AsrPort、TtsPort。音频不到 Runtime。ASR 只交 final；partial 可画「正在听」，禁止进业务。TTS 禁止再生成。`expect_more` 由壳填：普通 PTT 默认 true；「好了」/结束词表为 false。禁止 VAD 当确认，禁止 LLM 参与语音控制。
+
+合格：同一 text 序列的 Text/Voice 草稿与闸门等价；真机脚本分类 ASR/ADAPTER/RUNTIME。细则 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)、[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)。
+
+禁止：改 Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory / Response；partial 进 Runner；TTS 第二张嘴；ERP；多 Agent。
+
+冻结：上列内核。允许新增壳模块与 Fake ASR/TTS 测试。

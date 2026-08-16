@@ -189,7 +189,7 @@ L5 口播：沿用 V0.3C 义务；真模型不得为了「像人」多报 SKU �
 
 未完成 V0.3C Fake 金脚本，不得用 V0.3D 分数代替。  
 未有**至少一个**模型达到 §5.1+§5.2，不得宣传「默认 LLM 入口已在真模型上可用」；Demo 无密钥路径仍可用规则兜底（ADR-016）。  
-V0.4（ASR/ERP/LangGraph）仍以前序冻结与 V0.3C 准入为准；真模型达标是「打开 LLM 成功路径」的条件，不是改闸门的条件。
+V0.4 是 Voice Adapter（ASR final → 现有 turns → TTS 念 `reply_text`），不是 ERP、不是 LangGraph。仍以前序冻结与 V0.3C 准入为准；真模型达标是「打开 LLM 成功路径」的条件，不是改闸门的条件。语音设计见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。
 
 ---
 

@@ -16,7 +16,8 @@
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
 | [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) | V0.3C 农批语言分层评测、商品理解缺口、复杂订单金脚本、V0.4 准入 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md) |
+| [MODEL_EVAL.md](MODEL_EVAL.md) | V0.3D 真模型评测：接入、运行、Fake 对照、Prompt 版本、指标与失败记录 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -869,6 +870,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8l. V0.3A LLM Language Runtime：`LLMTurnParser` 为默认语言入口；双层 Schema；无配置时直接规则解析且行为与 v0.2 一致。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。不上 LangGraph / ASR / Vector DB。  
 8m. V0.3B Product Understanding：`SpeechAct → ProductQuery → Resolver`。规格只做 size/grade/origin/packing；唯一命中提升已有 SKU 节点。`confirm_gate` 不改。不建 SKU、不学 Ontology、不接 ERP、不上 Vector DB。  
 8n. V0.3C 农批语言能力：分层 Benchmark + 复杂订单金脚本；量缺口不新做 Agent。`confirm_gate` 不改。不上 ASR / ERP / Vector DB，不自动建 SKU。准入见 [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md)。  
+8o. V0.3D 真模型评测：同一 `LLMTurnParser` 入口跑 live；Qwen/GPT 只换兼容端点。默认 CI 不发请求。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。见 [MODEL_EVAL.md](MODEL_EVAL.md)。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -1112,3 +1114,17 @@ V0.4 前必须：L0 全绿；G1–G4 金脚本绿；四属性独立 + 两键合�
 禁止：ASR / TTS / ERP / Vector DB / 自动建 SKU / 改 confirm_gate / LLM 选 SKU。
 
 冻结：Policy.confirm_gate、OrderService、Memory、Response、Outbox。允许扩评测集、评测种子节点、规格同义词典（只映射已有属性）。
+
+### 14.15 真模型评测（V0.3D）
+
+目标：验证真实 LLM 能否稳定驱动**现有** Runtime。不是新 Agent，不换闸门。
+
+Qwen / GPT / 兼容网关共用 `HttpLlmClient`（`LLM_BASE_URL` + `LLM_MODEL`）。live 评测走同一 `LLMTurnParser` 与 pinned `prompt_id`。默认 pytest 无密钥、不发请求。
+
+Fake 测 Runtime；live 测模型是否抽对 SpeechAct。规则兜底成功不算模型成功。Prompt 以 `parser.vN` 版本化，禁止塞 Catalog。至少一个模型达到 L0 全绿、stall_oral ≥90% 且无兜底、G1/G2 真 Parser 三轮快照一致，才可宣传 LLM 成功路径。
+
+细则 [MODEL_EVAL.md](MODEL_EVAL.md)、[ADR-019](ADR/ADR-019-real-model-evaluation.md)。
+
+禁止：ASR / TTS / ERP / Vector DB / LLM 选 SKU / LLM 写 Memory / 评测专用图。
+
+冻结：Resolver、Policy、OrderService、Memory、Response、Outbox。

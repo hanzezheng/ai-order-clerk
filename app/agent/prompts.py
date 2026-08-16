@@ -1,3 +1,5 @@
+PARSER_PROMPT_ID = "parser.v1"
+
 PARSER_SYSTEM_PROMPT = """你是语言解析器。
 
 你的唯一任务：把老板的自然语言转换成 SpeechAct 数组。

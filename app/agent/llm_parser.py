@@ -8,7 +8,7 @@ from app.agent.llm_client import LlmClient
 from app.agent.llm_convert import llm_turn_to_domain
 from app.agent.llm_schema import LlmTurnParse
 from app.agent.parser import TurnParser
-from app.agent.prompts import PARSER_SYSTEM_PROMPT
+from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 from app.entity.speech import TurnParse
 
@@ -53,6 +53,8 @@ def _fallback_reason(exc: Exception) -> str:
 
 class LLMTurnParser:
     """自然语言 → TurnParse。未配置不发请求；失败则整回合规则兜底。"""
+
+    prompt_id = PARSER_PROMPT_ID
 
     def __init__(self, client: LlmClient, fallback: TurnParser | None = None) -> None:
         self._client = client

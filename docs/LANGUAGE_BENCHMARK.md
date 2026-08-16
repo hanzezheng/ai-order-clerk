@@ -250,7 +250,7 @@ V0.4 指下一阶段产品增量（无论是 ASR 外壳、ERP 适配还是 LangG
 - `use_old_price` 填价（默认仍不静默套上周价）
 - 颜色指代消解成品种
 - 件重 / 产季属性
-- 真模型 L1 分数门槛（预留 `ParserEvaluator.scored`）
+- 真模型 L1 分数门槛：改由 V0.3D [MODEL_EVAL.md](MODEL_EVAL.md) 规定；未跑 live 不得宣传 LLM 成功路径
 
 ### 4.3 明确不做（V0.4 前也不做）
 

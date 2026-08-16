@@ -19,9 +19,9 @@ from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 
 
-def test_prompt_id_is_pinned_v3():
-    assert PARSER_PROMPT_ID == "parser.v3"
-    assert LLMTurnParser.prompt_id == "parser.v3"
+def test_prompt_id_is_pinned_v4():
+    assert PARSER_PROMPT_ID == "parser.v4"
+    assert LLMTurnParser.prompt_id == "parser.v4"
     assert "不要选择 SKU" in PARSER_SYSTEM_PROMPT
     assert "不要写记忆" in PARSER_SYSTEM_PROMPT
     assert "不要判断能否确认" in PARSER_SYSTEM_PROMPT
@@ -29,6 +29,8 @@ def test_prompt_id_is_pinned_v3():
     assert "禁止与 type 同级摊开" in PARSER_SYSTEM_PROMPT
     assert "禁止 add_item" in PARSER_SYSTEM_PROMPT
     assert "refine_spec" in PARSER_SYSTEM_PROMPT
+    assert "再加20件" in PARSER_SYSTEM_PROMPT
+    assert "product_mention" in PARSER_SYSTEM_PROMPT
 
 
 def test_qwen_flat_array_counts_as_model_pass_not_fallback():
@@ -74,7 +76,7 @@ def test_fake_dataset_is_unscored_and_has_required_report_fields():
     assert report.scored is False
     assert report.mode == "fake"
     assert report.model == "fake"
-    assert report.prompt_id == "parser.v3"
+    assert report.prompt_id == "parser.v4"
     assert report.veto is False
     assert report.stall_oral_pass_rate == 1.0
     blob = report_to_json(report)
@@ -348,3 +350,59 @@ def test_set_spec_on_oral_spec_counts_as_model_pass():
     assert row.model_pass is True
     assert row.l0_violated is False
     assert row.predicted_acts[0].type == "refine_spec"
+
+
+def test_qwen_residual_slot_errors_count_as_model_pass():
+    samples = [
+        ParserEvaluationCase(
+            id="add-golden-durian",
+            text="加两个金边榴莲",
+            expected_acts=[
+                {"type": "add_line", "slots": {"product_mention": "金边榴莲", "qty": 2, "uom": "个"}}
+            ],
+        ),
+        ParserEvaluationCase(
+            id="add-more-qty",
+            text="再加20件",
+            expected_acts=[{"type": "set_qty", "slots": {"qty": 20, "uom": "件", "mode": "add"}}],
+        ),
+        ParserEvaluationCase(
+            id="anaphora-that-apple",
+            text="那个苹果",
+            expected_acts=[{"type": "unknown", "slots": {"product_mention": "那个苹果"}}],
+        ),
+        ParserEvaluationCase(
+            id="anaphora-just-now",
+            text="刚才那个改80件",
+            expected_acts=[
+                {"type": "set_qty", "slots": {"product_mention": "刚才那个", "qty": 80, "uom": "件"}}
+            ],
+        ),
+        ParserEvaluationCase(
+            id="remove-that",
+            tag="stall_oral",
+            text="那个不要了",
+            expected_acts=[{"type": "remove_line", "slots": {"product_mention": "那个"}}],
+        ),
+    ]
+    raws = {
+        "加两个金边榴莲": {
+            "acts": [{"type": "add_line", "slots": {"product_mention": "金边榴莲", "qty": 2}}]
+        },
+        "再加20件": {"acts": [{"type": "add_line", "slots": {"qty": 20, "uom": "件"}}]},
+        "那个苹果": {"acts": [{"type": "set_line", "slots": {"product_mention": "那个苹果"}}]},
+        "刚才那个改80件": {
+            "acts": [{"type": "set_qty", "slots": {"qty": 80, "uom": "件", "mention": "刚才那个"}}]
+        },
+        "那个不要了": {"acts": [{"type": "remove_line", "slots": {"mention": "那个"}}]},
+    }
+    parser, capture = build_eval_parser(FakeLlmClient(responses=raws))
+    report = LanguageBenchmark().evaluate(
+        samples, parser, mode="live", model="qwen-probe", capture=capture
+    )
+    assert report.veto is False
+    assert report.stall_oral_pass_rate == 1.0
+    for row in report.records:
+        assert row.fallback is False
+        assert row.model_pass is True, row.case_id
+        assert row.severity == "pass"

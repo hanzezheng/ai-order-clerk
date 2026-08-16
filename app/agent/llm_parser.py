@@ -8,7 +8,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from app.agent.llm_client import LlmClient
 from app.agent.llm_convert import llm_turn_to_domain
-from app.agent.llm_schema import LlmActSlots, LlmTurnParse
+from app.agent.llm_schema import LlmActSlots, LlmSpeechAct, LlmTurnParse
 from app.agent.parser import TurnParser
 from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
@@ -16,6 +16,16 @@ from app.entity.speech import TurnParse
 
 _ADAPTER = TypeAdapter(LlmTurnParse)
 _LANGUAGE_SLOT_KEYS = frozenset(LlmActSlots.model_fields)
+_PRODUCT_TYPES = frozenset(
+    {
+        "add_line",
+        "set_line",
+        "set_qty",
+        "remove_line",
+        "set_price",
+        "replace_product",
+    }
+)
 
 # 语言层封闭同义词 → 领域 type。不是新 SpeechAct，不映射 confirm。
 LLM_ACT_TYPE_ALIASES: dict[str, str] = {
@@ -96,13 +106,65 @@ def normalize_llm_shape(payload: Any) -> Any:
     return out
 
 
-def parse_llm_output(raw: Any) -> LlmTurnParse:
+def apply_language_repairs(parsed: LlmTurnParse, text: str) -> LlmTurnParse:
+    """原文可核对的槽位修补。不猜 SKU / 客户，不编原句没有的数字。"""
+    repaired: list[LlmSpeechAct] = []
+    for item in parsed.acts:
+        slots = item.slots.model_copy()
+        act_type = item.type
+        if act_type in _PRODUCT_TYPES and not slots.product_mention and slots.mention:
+            slots = slots.model_copy(update={"product_mention": slots.mention, "mention": None})
+        if act_type == "add_line" and slots.qty is not None and not slots.product_mention:
+            act_type = "set_qty"
+            if not slots.mode:
+                slots = slots.model_copy(update={"mode": "add"})
+        if act_type in {"set_line", "add_line"} and slots.qty is None and _is_product_anaphora(
+            slots.product_mention
+        ):
+            act_type = "unknown"
+        if slots.qty is not None and not slots.uom:
+            uom = _uom_from_text(text, slots.qty)
+            if uom:
+                slots = slots.model_copy(update={"uom": uom})
+        if act_type == "set_qty" and not slots.mode and ("再加" in text or "再来" in text):
+            slots = slots.model_copy(update={"mode": "add"})
+        repaired.append(item.model_copy(update={"type": act_type, "slots": slots}))
+    return parsed.model_copy(update={"acts": repaired})
+
+
+def _is_product_anaphora(mention: str | None) -> bool:
+    if not mention:
+        return False
+    return "那个" in mention or "刚才" in mention or "以前那个" in mention
+
+
+def _uom_from_text(text: str, qty: object) -> str | None:
+    try:
+        number = int(qty)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    ge_forms = {2: ("两个", "2个"), 3: ("三个", "3个")}
+    if number in ge_forms and any(form in text for form in ge_forms[number]):
+        return "个"
+    if f"{number}个" in text:
+        return "个"
+    if f"{number}件" in text:
+        return "件"
+    if number == 60 and "六十件" in text:
+        return "件"
+    if number == 20 and "二十件" in text:
+        return "件"
+    return None
+
+
+def parse_llm_output(raw: Any, *, text: str = "") -> LlmTurnParse:
     if isinstance(raw, (str, bytes, bytearray)):
-        text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else raw
-        payload: Any = json.loads(_strip_fences(text))
+        blob = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else raw
+        payload: Any = json.loads(_strip_fences(blob))
     else:
         payload = raw
-    return _ADAPTER.validate_python(normalize_llm_shape(payload))
+    parsed = _ADAPTER.validate_python(normalize_llm_shape(payload))
+    return apply_language_repairs(parsed, text)
 
 
 def _fallback_reason(exc: Exception) -> str:
@@ -132,7 +194,7 @@ class LLMTurnParser:
             return self._fallback_parse(text, "llm_unconfigured", attempted=False)
         try:
             raw = self._client.complete(system=PARSER_SYSTEM_PROMPT, user=text)
-            llm_out = parse_llm_output(raw)
+            llm_out = parse_llm_output(raw, text=text)
             if not llm_out.acts and text.strip():
                 raise LlmParseError("empty_acts")
             return llm_turn_to_domain(llm_out, raw_text=text)

@@ -1087,7 +1087,9 @@ Text → LLM Parser → SpeechAct[] → Resolver → Policy → Service
 SpeechAct → ProductUnderstanding → ProductQuery → Resolver → Policy → Service
 ```
 
-Understanding 只归一 `size` / `grade` / `origin` / `packing`。`focus_node_id` 来自 Session。Resolver 过滤候选；唯一 SKU 命中时提升 `matched_node`。`confirm_gate` 仍只认 `product_sku_id`。
+Understanding 只归一 `size` / `grade` / `origin` / `packing`，产出无业务 id 的 `ProductQuery`。`focus_node_id` 来自 Session 已有行，不来自 LLM。Resolver 按属性过滤候选；过滤后恰 1 个 SKU 时提升 `matched_node` 到该节点，不写 `resolved_sku`。`resolved_sku` 仍只由 `Policy.fill_sku` 填写。`confirm_gate` 仍只认最终 `product_sku_id`。
+
+无规格时行为不变：王记+苹果仍歧义；李老板+苹果仍档案默认。树上没有的规格不长出新 SKU，也不替品。
 
 禁止：自动建 SKU、改 Ontology、ERP 商品库、Vector DB、LLM 返回 sku_id。
 

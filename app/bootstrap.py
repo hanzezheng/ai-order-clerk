@@ -39,6 +39,7 @@ from app.services.order_service import OrderService
 from app.services.ports import CatalogRepository, OutboxRepository, SessionRepository, UnitOfWork
 from app.services.price_memory_service import PriceMemoryService
 from app.services.product_resolver import ProductResolver
+from app.services.product_understanding import ProductUnderstanding
 from app.session.intake import TurnIntake
 from app.session.runner import SalesSessionRunner
 from app.session.timeline import SessionTimelineStore
@@ -125,6 +126,7 @@ def assemble_world(
         reply_grounder=ReplyGrounder(),
         context_loader=ContextLoader(bundle.catalog, bundle.prices),
         events=dispatcher,
+        product_understanding=ProductUnderstanding(),
     )
     gateway = TurnGateway(runner, dispatcher)
     intake = TurnIntake(

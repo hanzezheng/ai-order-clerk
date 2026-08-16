@@ -23,6 +23,7 @@ from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
 from app.services.price_memory_service import PriceMemoryService
 from app.services.product_resolver import ProductResolver
+from app.services.product_understanding import ProductUnderstanding
 from app.services.ports import SessionRepository
 
 
@@ -47,6 +48,7 @@ class SalesSessionRunner:
         reply_grounder: ReplyGrounder | None = None,
         context_loader: ContextLoader | None = None,
         events: DomainEventPublisher | None = None,
+        product_understanding: ProductUnderstanding | None = None,
     ) -> None:
         self._parser = parser
         self._policy = policy
@@ -63,6 +65,7 @@ class SalesSessionRunner:
         self._grounder = reply_grounder or ReplyGrounder()
         self._context_loader = context_loader
         self._events = events
+        self._understanding = product_understanding or ProductUnderstanding()
 
     def handle(self, session: SalesSession, text: str, *, expect_more: bool = False) -> TurnResult:
         session.turn_index += 1
@@ -199,7 +202,7 @@ class SalesSessionRunner:
                     issues=[Issue(code="customer_ambiguous", block_level="session_block", message="先确认是哪家再记货")],
                     reasons=["buffered_line"],
                 )
-            mention = self._resolve_product(session, str(act.slots.get("product_mention", "")))
+            mention = self._resolve_product(session, act)
             qty = Quantity(value=Decimal(act.slots.get("qty") or 1), uom=str(act.slots.get("uom") or self._default_uom(mention)))
             op = "add" if act.type == "add_line" else "set"
             line_verdict = self._policy.on_line(mention, expect_more=expect_more)
@@ -216,7 +219,7 @@ class SalesSessionRunner:
                     issues=[Issue(code="customer_missing", block_level="session_block", message="还没开谁的单")],
                     reasons=["unbound_customer"],
                 )
-            mention = self._resolve_product(session, str(act.slots.get("product_mention", "")))
+            mention = self._resolve_product(session, act)
             verdict = self._policy.on_set_price(mention)
             if not verdict.allow_execute:
                 return verdict
@@ -230,8 +233,10 @@ class SalesSessionRunner:
             return verdict
 
         if act.type == "refine_spec":
-            mention = self._resolve_product(session, str(act.slots.get("product_mention", "")))
-            line = self._target_line(session, act.slots.get("product_mention"))
+            mention = self._resolve_product(session, act)
+            line = self._target_line(
+                session, act.slots.get("product_mention") or act.slots.get("spec_mention")
+            )
             if line is None or mention.matched_node is None:
                 return DecisionVerdict(
                     allow_execute=False,
@@ -270,8 +275,21 @@ class SalesSessionRunner:
 
         return DecisionVerdict(allow_execute=False, reasons=["unknown_act"])
 
-    def _resolve_product(self, session: SalesSession, raw: str) -> ProductMention:
-        mention = self._resolver.resolve(raw)
+    def _resolve_product(self, session: SalesSession, act: SpeechAct) -> ProductMention:
+        product_mention = str(act.slots.get("product_mention") or "")
+        spec = act.slots.get("spec_mention")
+        spec_mention = str(spec) if spec else None
+        focus_id = None
+        if act.type == "refine_spec" or (spec_mention and not product_mention):
+            line = self._target_line(session, product_mention or spec_mention)
+            if line is not None:
+                focus_id = line.product_sku_id or line.matched_node_id
+        query = self._understanding.interpret(
+            product_mention=product_mention,
+            spec_mention=spec_mention,
+            focus_node_id=focus_id,
+        )
+        mention = self._resolver.resolve_query(query)
         profile: CustomerProfile | None = None
         if session.draft.customer and session.draft.customer.id:
             profile = self._customers.get_profile(session.draft.customer.id)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from app.agent.parser import TurnParser
 from app.agent.turn_parser import RuleTurnParser
 from app.database.memory import InMemoryCatalog, InMemoryOrders, InMemorySessions
@@ -16,14 +18,27 @@ from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
 from app.services.price_memory_service import PriceMemoryService
 from app.services.product_resolver import ProductResolver
+from app.session.intake import TurnIntake
 from app.session.runner import SalesSessionRunner
+from app.session.timeline import SessionTimelineStore
 
 
-def build_world(parser: TurnParser | None = None) -> tuple[SalesSessionRunner, RecordingEventPublisher, InMemoryCatalog]:
+@dataclass
+class AppWorld:
+    runner: SalesSessionRunner
+    sessions: InMemorySessions
+    events: RecordingEventPublisher
+    catalog: InMemoryCatalog
+    timeline: SessionTimelineStore
+    intake: TurnIntake
+
+
+def build_app_world(parser: TurnParser | None = None) -> AppWorld:
     catalog = InMemoryCatalog()
     sessions = InMemorySessions()
     orders = InMemoryOrders()
     events = RecordingEventPublisher()
+    timeline = SessionTimelineStore()
     ontology = OntologyService(catalog)
     customers = CustomerService(catalog)
     order_service = OrderService(orders, ontology, events)
@@ -44,7 +59,20 @@ def build_world(parser: TurnParser | None = None) -> tuple[SalesSessionRunner, R
         reply_grounder=ReplyGrounder(),
         context_loader=ContextLoader(catalog, catalog.prices),
     )
-    return runner, events, catalog
+    intake = TurnIntake(runner=runner, sessions=sessions, events=events, timeline=timeline)
+    return AppWorld(
+        runner=runner,
+        sessions=sessions,
+        events=events,
+        catalog=catalog,
+        timeline=timeline,
+        intake=intake,
+    )
+
+
+def build_world(parser: TurnParser | None = None) -> tuple[SalesSessionRunner, RecordingEventPublisher, InMemoryCatalog]:
+    world = build_app_world(parser)
+    return world.runner, world.events, world.catalog
 
 
 def new_session() -> SalesSession:

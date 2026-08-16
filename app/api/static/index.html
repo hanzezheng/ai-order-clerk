@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>农批开单员 · 文本模拟语音</title>
+  <style>
+    :root {
+      --bg: #14110d;
+      --panel: #1f1a14;
+      --ink: #f4ead8;
+      --muted: #b7a58d;
+      --accent: #e2a13a;
+      --line: #3a3126;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    main {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 24px 16px 160px;
+    }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    .hint { color: var(--muted); margin-bottom: 24px; }
+    .reply {
+      min-height: 88px;
+      font-size: 28px;
+      line-height: 1.4;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 800px) { .grid { grid-template-columns: 1.2fr 0.8fr; } }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    h2 { font-size: 14px; color: var(--muted); margin: 0 0 12px; letter-spacing: 0.08em; }
+    .line, .event {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .line:last-child, .event:last-child { border-bottom: 0; }
+    .empty { color: var(--muted); }
+    .dock {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: #100e0b;
+      border-top: 1px solid var(--line);
+      padding: 12px 16px 20px;
+    }
+    .dock-inner { max-width: 880px; margin: 0 auto; display: flex; gap: 12px; align-items: flex-end; }
+    textarea {
+      flex: 1;
+      min-height: 72px;
+      font-size: 22px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #2a231b;
+      color: var(--ink);
+      resize: none;
+    }
+    button.send {
+      width: 120px;
+      height: 72px;
+      border: 0;
+      border-radius: 16px;
+      background: var(--accent);
+      color: #1a1208;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    label.more {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 0 8px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>档口开单</h1>
+    <p class="hint">文本模拟语音输入。对着下面大声「说」，系统只走 turns API，不提供表单改单。</p>
+    <div class="reply" id="reply">还没开始。可以说：开李老板的单</div>
+    <div class="grid">
+      <section>
+        <h2>当前草稿（只读）</h2>
+        <div id="draft" class="empty">还没有货</div>
+      </section>
+      <section>
+        <h2>业务时间线</h2>
+        <div id="timeline" class="empty">暂无事件</div>
+      </section>
+    </div>
+  </main>
+  <div class="dock">
+    <div class="dock-inner" style="flex-direction: column;">
+      <label class="more"><input type="checkbox" id="expectMore" /> 还在说（连报，不追问）</label>
+      <div style="display:flex; gap:12px; width:100%;">
+        <textarea id="speech" placeholder="开李老板的单"></textarea>
+        <button class="send" id="send" type="button">说完了</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const state = { sessionId: null, seq: 0 };
+    const replyEl = document.getElementById("reply");
+    const draftEl = document.getElementById("draft");
+    const timelineEl = document.getElementById("timeline");
+    const speechEl = document.getElementById("speech");
+
+    function renderDraft(draft) {
+      if (!draft || !draft.lines || !draft.lines.length) {
+        const who = draft && draft.customer ? draft.customer.name : "";
+        draftEl.className = "empty";
+        draftEl.textContent = who ? (who + " · 还没有货") : "还没有货";
+        return;
+      }
+      draftEl.className = "";
+      const who = draft.customer ? draft.customer.name + " · " : "";
+      draftEl.innerHTML = who + draft.status + draft.lines.map((line) => {
+        const price = line.price_status === "tbd" ? "价未定" : (line.unit_price || "");
+        return `<div class="line">${line.label} ${line.qty}${line.uom} ${price}</div>`;
+      }).join("");
+    }
+
+    function renderTimeline(items) {
+      if (!items || !items.length) {
+        timelineEl.className = "empty";
+        timelineEl.textContent = "暂无事件";
+        return;
+      }
+      timelineEl.className = "";
+      timelineEl.innerHTML = items.map((ev) => `<div class="event">${ev.event_type}</div>`).join("");
+    }
+
+    async function ensureSession() {
+      if (state.sessionId) return;
+      const res = await fetch("/v1/sessions", { method: "POST" });
+      const body = await res.json();
+      state.sessionId = body.session_id;
+      renderDraft(body.draft);
+      renderTimeline(body.timeline);
+    }
+
+    async function sendTurn() {
+      await ensureSession();
+      const text = speechEl.value.trim();
+      if (!text) return;
+      state.seq += 1;
+      const res = await fetch(`/v1/sessions/${state.sessionId}/turns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          source: "text",
+          utterance_id: crypto.randomUUID(),
+          seq: state.seq,
+          is_final: true,
+          expect_more: document.getElementById("expectMore").checked
+        })
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        replyEl.textContent = "这句没接上，请按顺序再说一遍";
+        return;
+      }
+      replyEl.textContent = body.ignored ? "半句已忽略" : (body.reply_text || "记下了");
+      renderDraft(body.draft);
+      renderTimeline(body.timeline);
+      speechEl.value = "";
+      speechEl.focus();
+    }
+
+    document.getElementById("send").addEventListener("click", sendTurn);
+    speechEl.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        sendTurn();
+      }
+    });
+    ensureSession();
+  </script>
+</body>
+</html>

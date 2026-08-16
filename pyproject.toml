@@ -9,13 +9,18 @@ description = "Voice-first 农批开单员业务内核"
 requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.10",
+  "fastapi>=0.115",
+  "uvicorn>=0.34",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3"]
+dev = ["pytest>=8.3", "httpx>=0.28"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["api/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["app/tests"]

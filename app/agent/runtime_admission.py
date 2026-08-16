@@ -312,7 +312,7 @@ def render_report(report: AdmissionReport) -> str:
         "",
         "## L1结果",
         "",
-        "已有 live：qwen3.7-plus + parser.v4，veto=false，must_not_guess=1.0，stall_oral=1.0，fallback_rate=0。",
+        "已有 L1 live：qwen3.7-plus + parser.v4，veto=false，must_not_guess=1.0，stall_oral=1.0，fallback_rate=0。L4：qwen3.7-plus + parser.v6 为 A。",
         "",
         "## Runtime结果",
         "",

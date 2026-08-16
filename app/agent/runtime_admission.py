@@ -252,27 +252,44 @@ def g4_passed(batch: list[ScriptResult]) -> bool:
     return all(item.passed for item in batch if item.script_id.startswith("G4"))
 
 
+DANGER_TAXONOMY = frozenset({"guessed_sku", "guessed_customer", "confirm_violation"})
+LANGUAGE_TAXONOMY = frozenset({"wrong_act", "fallback", "spec_lost", "lost_focus"})
+
+
+def _taxonomy_summary(taxonomies: list[str]) -> str:
+    counts: dict[str, int] = {}
+    for tax in taxonomies:
+        counts[tax] = counts.get(tax, 0) + 1
+    return ", ".join(f"{name}×{counts[name]}" for name in sorted(counts))
+
+
 def decide(mode: EvalMode, runs: list[list[ScriptResult]]) -> tuple[Decision, str]:
     if not runs:
         return "B", "没有跑出任何脚本"
     latest = runs[-1]
     taxonomies = [fail.taxonomy for script in latest for row in script.records for fail in row.failures]
+    failed_scripts = [item.script_id for item in latest if not item.passed]
     g1, g2, g3 = _named(latest, "G1"), _named(latest, "G2"), _named(latest, "G3")
     all_pass = bool(g1 and g1.passed and g2 and g2.passed and g3 and g3.passed and g4_passed(latest))
     stable = True
     if len(runs) >= 2:
         first = {item.script_id: item.semantic for item in runs[0]}
         stable = all({item.script_id: item.semantic for item in batch} == first for batch in runs[1:])
-    if any(tax in {"guessed_sku", "guessed_customer", "confirm_violation"} for tax in taxonomies):
-        return "B", "出现危险行为（猜 SKU/客户或确认闸门被绕过），LLM 不能作为默认入口"
+    summary = _taxonomy_summary(taxonomies)
+    failed = ",".join(failed_scripts) if failed_scripts else "无"
+    if any(tax in DANGER_TAXONOMY for tax in taxonomies):
+        return "B", f"出现危险行为（{summary}）；失败脚本：{failed}。LLM 不能作为默认入口"
     if mode != "live":
         if all_pass and stable:
             return "B", "Fake 金脚本绿，只证明 Runtime 在正确 SpeechAct 下安全；未跑 live 不得选 A"
-        return "B", "Fake 金脚本未全绿"
+        return "B", f"Fake 金脚本未全绿（{summary or '无 taxonomy'}）；失败脚本：{failed}"
     if not all_pass:
-        if any(tax in {"wrong_act", "fallback", "spec_lost", "lost_focus"} for tax in taxonomies):
-            return "C", "真模型驱动失败主要在语言抽取或落行，需改 Prompt 后重评；本阶段不改 Prompt"
-        return "B", "真模型未能稳定驱动 Runtime"
+        if any(tax in LANGUAGE_TAXONOMY for tax in taxonomies):
+            return "C", (
+                f"真模型驱动失败主要在语言抽取或落行（{summary}）；失败脚本：{failed}。"
+                "需改 Prompt 后重评；本阶段不改 Prompt"
+            )
+        return "B", f"真模型未能稳定驱动 Runtime（{summary or '无 taxonomy'}）；失败脚本：{failed}"
     if not stable:
         return "B", "三轮草稿快照不一致"
     return "A", "G1–G4 真 Parser 驱动 Runtime 通过，且三轮快照一致"

@@ -63,3 +63,13 @@ G1 比口语清单多两步：`王记水果店`（否则无法确认）、`加�
 | C | 失败主要在语言抽取，需改 Prompt 后重评（本阶段仍不改 Prompt） |
 
 未得 A 之前，不上语音。
+
+---
+
+## 第一次 live（qwen3.7-plus + parser.v4）
+
+用户回报 Decision **B**：出现危险行为（猜 SKU/客户或确认闸门被绕过）。
+
+当时的分类有误：G1/G2「该确认却没确认」被标成 `confirm_violation`，会把语言失败抬成 B。`confirm_violation` 只保留给「不该确认却确认了」（例如 G3 苹果仍 hang）。请再跑一次，把 **Failure taxonomy** 与 **Runtime结果** 整段贴回。
+
+未得 A 之前仍不上语音。不改 Prompt / Resolver / Policy / Confirm Gate / Memory。

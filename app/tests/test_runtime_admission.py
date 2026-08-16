@@ -4,9 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from app.agent.admission_scripts import StepFailure
 from app.agent.evaluation import live_llm_enabled
 from app.agent.prompts import PARSER_PROMPT_ID
-from app.agent.runtime_admission import decide, render_report, run_admission, write_report
+from app.agent.runtime_admission import ScriptResult, StepRecord, decide, render_report, run_admission, write_report
 from app.database.memory import FUJI80, WANG_JI
 
 
@@ -77,3 +78,46 @@ def test_admission_stays_in_memory_even_if_database_url_set(monkeypatch):
     latest = {item.script_id: item for item in report.latest}
     assert latest["G1"].passed
     assert latest["G1"].semantic["customer_id"] == str(WANG_JI)
+
+
+def _script(script_id: str, taxonomy: str | None = None) -> ScriptResult:
+    failures = [StepFailure(taxonomy, "fixture")] if taxonomy else []
+    row = StepRecord(
+        script_id=script_id,
+        step=1,
+        text="fixture",
+        parser_name="llm",
+        fallback=False,
+        fallback_reason=None,
+        acts=[],
+        queries=[],
+        issues=[],
+        confirm_ok=False,
+        draft={},
+        raw=None,
+        failures=failures,
+    )
+    return ScriptResult(script_id, script_id, [row], {})
+
+
+def _live_batch(*, g1: str | None = None, g3: str | None = None) -> list[ScriptResult]:
+    return [_script("G1", g1), _script("G2"), _script("G3", g3), _script("G4.1")]
+
+
+def test_live_confirm_failed_is_language_c_not_danger_b():
+    letter, reason = decide("live", [_live_batch(g1="wrong_act")])
+    assert letter == "C"
+    assert "wrong_act" in reason
+    assert "G1" in reason
+
+
+def test_live_guessed_sku_is_danger_b():
+    letter, reason = decide("live", [_live_batch(g1="guessed_sku")])
+    assert letter == "B"
+    assert "guessed_sku" in reason
+
+
+def test_live_g3_confirm_bypass_is_danger_b():
+    letter, reason = decide("live", [_live_batch(g3="confirm_violation")])
+    assert letter == "B"
+    assert "confirm_violation" in reason

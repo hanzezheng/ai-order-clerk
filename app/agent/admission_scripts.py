@@ -193,7 +193,7 @@ def _g1_qty(ctx: StepContext) -> list[StepFailure]:
 
 def _g1_confirm(ctx: StepContext) -> list[StepFailure]:
     if not ctx.result.verdict.confirm_ok:
-        return [StepFailure("confirm_violation", f"G1 应能确认，issues={issues_of(ctx.result)}")]
+        return [StepFailure("wrong_act", f"G1 未能确认，issues={issues_of(ctx.result)}")]
     if {node.id for node in ctx.catalog.list_nodes()} != ctx.nodes_before:
         return [StepFailure("guessed_sku", "确认后 Catalog 节点变化")]
     apple = line_named(ctx.session, "苹果")
@@ -247,7 +247,7 @@ def _g2_add(ctx: StepContext) -> list[StepFailure]:
 
 def _g2_confirm(ctx: StepContext) -> list[StepFailure]:
     if not ctx.result.verdict.confirm_ok:
-        return [StepFailure("confirm_violation", f"G2 应能确认，issues={issues_of(ctx.result)}")]
+        return [StepFailure("wrong_act", f"G2 未能确认，issues={issues_of(ctx.result)}")]
     profile = ctx.catalog.get_profile(LI_BOSS)
     if profile is None or profile.product_defaults.get(str(APPLE)) != FUJI80:
         return [StepFailure("wrong_act", "确认后档案默认被改写")]

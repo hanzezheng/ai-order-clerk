@@ -1,8 +1,8 @@
 # AI 农批开单员 POC — 设计方案（第一阶段）
 
-> 范围：Agent 后端核心。不接 ERP，不做前端 App。
+> 范围：Agent 后端核心 + V1 最小开单壳。不接 ERP，禁止做成 ERP 前端 App。
 > 交互：按真实档口**连续语音开单**设计——30 秒内连报多品、中途改口、同名客户、层级歧义、缺价不打断。
-> 第一阶段可不接麦克风/ASR，但 API 与图必须按语音连报契约实现（一条文本可含多动作；`expect_more` 时禁止打断追问）。
+> V1 可不接麦克风/ASR，用文本模拟语音输入；API 与图必须按语音连报契约实现（一条文本可含多动作；`expect_more` 时禁止打断追问）。
 
 仓库根目录即项目根目录（GitHub 仓库已名为 `ai-order-clerk`），不再套一层同名文件夹。
 
@@ -14,7 +14,7 @@
 | [DOMAIN.md](DOMAIN.md) | 农批业务知识 |
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -32,8 +32,9 @@
 | 单位单一 | 开单用「件/个」，计价常按「斤」，件重还会变 | 数量单位与计价单位分离 |
 | 记聊天就能个性化 | 60 件、好了、口误都不是知识 | 记忆只经 Extractor；价格记忆尤其要过期 |
 
-第一阶段仍不做：库存扣减、结算收款、送货调度、ERP 实连、前端、麦克风/ASR。  
-第一阶段**要做**：多动作连报、非打断澄清、同名客户消歧、本体层级、价格 TBD、领域事件总线（给采购/库存/付款/分析留口）。
+第一阶段仍不做：库存扣减、结算收款、送货调度、ERP 实连、麦克风/ASR/TTS、登录、多租户。  
+第一阶段**要做**：多动作连报、非打断澄清、同名客户消歧、本体层级、价格 TBD、领域事件总线（给采购/库存/付款/分析留口）、HTTP turns 入口、Session Timeline、文本模拟麦的 Demo Shell。  
+V1 **允许**一个开单壳（巨大输入、只读草稿、口播 `reply_text`）；**禁止**把 Demo 做成加行表单 / ERP 页面。
 
 ---
 
@@ -63,7 +64,10 @@ ai-order-clerk/
 │   │   ├── issue.py            # blocking | line_hold | notice
 │   │   └── confirm_gate.py
 │   ├── session/
-│   │   ├── state_machine.py    # draft → confirming → confirmed / cancelled
+│   │   ├── runner.py           # 已落地：parse → policy → service
+│   │   ├── intake.py           # Sprint 6A：utterance_id / seq / is_final
+│   │   ├── timeline.py         # Sprint 6A：业务事件，禁止聊天记录
+│   │   ├── state_machine.py    # 目标：draft → confirming → confirmed / cancelled
 │   │   └── working_memory.py
 │   ├── memory/
 │   │   ├── extractor.py
@@ -95,7 +99,7 @@ ai-order-clerk/
 │       ├── test_customer_homonym.py
 │       ├── test_decision_policy.py
 │       ├── test_order_merge.py
-│       └── test_api_turn.py
+│       └── test_api_turns.py   # Sprint 6A 契约测试
 ├── alembic/
 ├── docs/DESIGN.md
 ├── pyproject.toml
@@ -123,7 +127,7 @@ entity  ←  被 agent / policy / services / api / response 共用
 | `memory/extractor` | 产出 MemoryCandidate | 直接落库 |
 | `response/` | 读 `ReplyPlan`，拼出口播 | 读 Catalog/PriceMemory/Session；改 `DecisionVerdict`；写 Memory/草稿 |
 | `services/` | ORM、事务、ERP Port | 调 LLM、绕过 policy 的确认闸门 |
-| `api/` | 启会话、投递用户话 | 自然语言直接进 SQL |
+| `api/` | 启会话、投递 turns、投影 Timeline 与只读草稿 | 自然语言直接进 SQL；保存聊天记录；绕过 Runner/Policy；表单加行 |
 
 AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否用档案默认、能否带价、能否「好了」，以 `policy/` 的 `DecisionVerdict` 为准，模型不得否决。
 
@@ -138,6 +142,11 @@ AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否
 - **memory**：Extract → MemoryPolicy → MemoryService。禁止订单确认直接写长期记忆。
 - **response**：`snapshot + verdict → ReplyPlan → TemplateResponseGenerator → ReplyGrounder`。只表达，不裁决。`reply_scope=changed_only` 用于连报 ack。提醒只渲染 `ReplyPlan.notices`，禁止 Memory 直接触发回复。
 - **business context**：绑客户后的只读投影（本单行相关的档案默认与价格记忆事实）。禁止把 Profile/Memory 全量塞进 Session。未绑定客户不得加载。
+- **api / intake**：HTTP 适配层。唯一自然语言入口是 `POST /v1/sessions/{id}/turns`。只包装现有 Runner，不改 Parser / Resolver / Policy / Memory / OrderService / Response。
+- **session timeline**：按会话追加业务事件（开单、加行、确认、同名客户阻断等）。独立于 `SalesSession`，**不是** IM 历史，禁止保存用户原话。
+- **demo shell**：文本模拟语音输入。展示口播与只读草稿。禁止加行表单、库存、收款、登录。
+
+Sprint 6A 已落地（其余仍为目标结构）：`app/main.py`、`app/api/routers/sessions.py`、`app/session/intake.py`、`app/session/timeline.py`、`app/api/static/index.html`。V1 不提供表单加行的 orders 写接口。
 
 `TurnParser`（`parse(text) -> TurnParse`）是唯一语言入口。`RuleTurnParser` 与 `LLMTurnParser` 可互换。LLM 只抽 SpeechAct；失败必须 fallback 到规则 Parser，并保留 `parser_name` / `fallback` / `fallback_reason`。LLM 输出 Schema 经转换层才变成领域 `SpeechAct`。禁止依赖 LLM 才能开单。
 
@@ -371,7 +380,17 @@ erDiagram
 
 ## 4. API 设计
 
-唯一自然语言入口：`POST /v1/sessions/{id}/turns`。为语音连报增加控制字段（第一阶段可用文本模拟）：
+会话是业务任务（`SalesSession`），不是聊天室。`POST /v1/sessions` 只创建任务上下文，不创建 IM 频道。
+
+| 方法 | 路径 | 作用 |
+| --- | --- | --- |
+| `POST` | `/v1/sessions` | 开一个销售开单任务 |
+| `GET` | `/v1/sessions/{id}` | 只读草稿投影 + Session Timeline（无用户原话） |
+| `POST` | `/v1/sessions/{id}/turns` | **唯一自然语言入口** |
+
+HTTP 适配层处理 `utterance_id` / `seq` / `is_final` 后，把 `text` 交给现有 `SalesSessionRunner.handle`。禁止 API 直连 Repository、禁止绕过 Policy、禁止把用户原话写入 Timeline。
+
+唯一自然语言入口：`POST /v1/sessions/{id}/turns`。为语音连报增加控制字段（V1 用文本模拟麦）：
 
 ```json
 {
@@ -391,11 +410,32 @@ erDiagram
 | `is_final` | POC **只处理 true**；partial 丢弃，避免半句落库 |
 | `expect_more` | true=连报未结束：可执行加行/改口，**不发追问**，`reply_mode=ack`；false 或 `confirm_order`：`recap`，idle 级问题可问 |
 
-响应含 `acts`、`verdict.issues`（分级）、当前草稿。`price_tbd` 只出现在 `notice`，不得进入 `pending_session_blocks`。
+Sprint 6A 适配层语义（不进 Runner）：
+
+- `is_final=false`：丢弃，不调用 Runner，草稿与 Timeline 不变。
+- 同一 `utterance_id` 重复投递：返回首次成功响应（幂等）。
+- `seq` 乱序或出现空洞：`409`。V1 不缓冲乱序包。
+
+响应含 `reply_text`、`verdict.issues`（分级）、当前草稿只读投影、Timeline。`price_tbd` 只出现在 `notice`，不得进入 `pending_session_blocks`。`reply_text` 不写入 Timeline。
 
 同名客户：`CustomerRef.candidates` 列出 `name, stall_no, phone_tail, last_order_at`，`block_level=session_block`。未消歧前：货行进 `session.buffer`，**不**套任何档案默认。
 
-`GET /v1/orders/{id}` 返回每行本体路径、数量、价格来源、`price_status`。不提供表单加行。已确认再加行 409。
+`GET /v1/orders/{id}` 返回每行本体路径、数量、价格来源、`price_status`。不提供表单加行。已确认再加行 409。Sprint 6A 不实现独立 orders 写接口；草稿随 session 只读返回。
+
+### 4.1 Session Timeline
+
+Timeline 是业务事件流，按 `session_id` 独立存储，**不**写入 `SalesSession`，**不**保存聊天记录。
+
+允许的事件类型（由领域事件与 `session_block` Issue 投影）：
+
+- `order.started`
+- `order.line_upserted` / `order.line_removed`
+- `order.confirmed`
+- `customer_ambiguous`（同名客户阻断）
+
+payload 只含结构化业务字段（客户 id、行 id、数量、单位、issue code、候选档口名等）。
+
+禁止出现的键（大小写不敏感）：`user_text`、`raw_text`、`text`、`utterance`、`chat`、`message`。口播 `reply_text` 只出现在当轮 turns 响应里，供 Demo 念/显示，不进入 Timeline。
 
 ---
 
@@ -707,14 +747,16 @@ verdict + session snapshot + changed_line_ids
 
 ## 11. 第一阶段明确不做
 
-- 前端、麦克风、ASR 引擎、微信（但 **turns 契约按语音连报实现**）
+- 麦克风、ASR 引擎、TTS、微信（但 **turns 契约按语音连报实现**；V1 用文本模拟麦）
+- ERP 前端、表单加行、复杂 App（允许最小 Demo Shell：输入 + 口播 + 只读草稿）
 - 库存扣减、采购执行、车次、打印、收款账期（只留 Port + 事件）
 - 自动替品、自动议价、编造行情
 - ERPNext 实连
-- 用 session_turns 全文做 RAG / 经营分析
-- 多租户、复杂权限
+- 用 session_turns / Timeline 全文做 RAG / 经营分析
+- 登录、多租户、复杂权限
 - Agent 内 SQL
 - 单意图分类器、澄清即停图、alias 全局唯一
+- 改 Parser / Resolver / Policy / Memory / OrderService / Response 来迁就 Demo
 
 ## 12. 建议落地顺序
 
@@ -725,10 +767,11 @@ verdict + session snapshot + changed_line_ids
 5. TurnParser 可替换 + LLM Parser fallback  
 6. Response Layer：ReplyPlan + 模板 Generator + 白名单 Grounder + 对话集  
 7. BusinessContext 只读投影 + Policy notice（不套价）  
-8. API turns（utterance_id / expect_more）  
+8. Sprint 6A：HTTP `POST /v1/sessions` + `POST /v1/sessions/{id}/turns`；Session Timeline（业务事件，禁止聊天记录）；Web Demo Shell（文本模拟麦）；API 契约测试。内核模块保持不动。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
+12. Sprint 6B（未批准）：真 ASR / TTS，仍走同一 turns 契约  
 
 ---
 
@@ -780,4 +823,45 @@ verdict + session snapshot + changed_line_ids
 
 ---
 
-实现以前以本文（含 §13 修订）为准。改 Issue 分级、expect_more 语义、同名客户约束或确认闸门时，先改设计再改代码。
+实现以前以本文（含 §13 修订与 §14 V1 边界）为准。改 Issue 分级、expect_more 语义、同名客户约束或确认闸门时，先改设计再改代码。
+
+---
+
+## 14. V1 产品边界（Sprint 6A）
+
+V1 目标：老板用嘴（或文本模拟麦）开完一单，并听见「价未定」。
+
+语音是 turns 外壳，不是新 Agent。路径固定：
+
+```text
+Demo 输入 / 以后 ASR
+  → POST /v1/sessions/{id}/turns
+  → TurnIntake（幂等、保序、丢弃 partial）
+  → 现有 SalesSessionRunner
+  → reply_text（以后 TTS 念）
+```
+
+### 14.1 设计影响（6A）
+
+| 层 | 影响 | 不影响 |
+| --- | --- | --- |
+| Parser / Resolver / Policy / Memory / OrderService / Response | 不改 | 内核裁决与落单 |
+| `SalesSession` | 仍是业务任务，不存聊天 | IM 历史 |
+| HTTP API | 新增 sessions / turns；适配层处理 `utterance_id`/`seq`/`is_final` | 不直连库、不绕过 Runner |
+| Timeline | **新增**业务事件投影 | 不保存 `user_text` |
+| Demo | **新增**单页壳：巨大输入、发送、只读草稿、口播 | 不加行表单、库存、支付、登录 |
+| 装配 | `AppWorld` 暴露同一份 sessions / events / timeline | 旧 `build_world()` 测试入口保持 |
+
+### 14.2 V1 冻结
+
+- ERP / 库存 / 收款
+- 表单加行
+- 静默套价
+- ReminderAgent
+- 登录 / 多租户
+- 用 LangGraph 重写开单内核
+- ASR / TTS（6B）
+
+### 14.3 Demo 验收
+
+「开李老板的单 → 苹果60件 → 好了」：确认成功，回复含「价未定」；Timeline 有 `order.started` / `order.line_upserted` / `order.confirmed`，全程无用户原话字段。

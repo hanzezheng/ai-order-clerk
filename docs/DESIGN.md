@@ -767,7 +767,7 @@ LLM **不得**参与 Memory 写入决策。`LLMTurnParser` 仍只是可替换语
 
 原则：一次纠正影响本单（Session 抑制）；确认后的纠正影响证据；多次同向确认才影响长期默认。
 
-Evidence：可用 `delta` 调整。记录 `positive_count` / `negative_count`（或等价），净 `count = max(0, positive_count - negative_count)`，禁止净计数为负。低于阈值 `status=pending`。本阶段不做复杂衰减。
+Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累计 `positive_count` / `negative_count`，以便解释历史。无正向证据时的负向只增加 `negative_count`，**不**形成需要额外确认来偿还的债务。低于阈值 `status=pending`。本阶段不做复杂衰减。
 
 读侧不变：`last_deal` 只进 notice，禁止静默改行价。Extractor 不得读取 `user_text` / `raw_text` / 聊天。
 

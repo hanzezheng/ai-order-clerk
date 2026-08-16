@@ -56,6 +56,7 @@ class EvidenceStore:
         delta: int,
         at: datetime | None = None,
     ) -> EvidenceRecord:
+        """delta 调整工作净 count；正负计数只追加历史，无正向时的负向不欠未来的债。"""
         key = (customer_id, kind, node_id, sku_id)
         now = at or datetime.now(UTC)
         current = self._items.get(key)
@@ -68,13 +69,15 @@ class EvidenceStore:
             )
         positive = current.positive_count
         negative = current.negative_count
+        count = current.count
         update: dict[str, object] = {}
         if delta > 0:
             positive += delta
+            count += delta
             update["last_confirmed_at"] = now
         elif delta < 0:
             negative += -delta
-        count = max(0, positive - negative)
+            count = max(0, count + delta)
         status: MemoryStatus = "active" if count >= PRODUCT_DEFAULT_THRESHOLD else "pending"
         update.update(
             {

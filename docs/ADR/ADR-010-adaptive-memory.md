@@ -30,7 +30,7 @@ Sprint 6B 已让长期记忆只从 `order.confirmed` 学习：`last_deal` 立即
 3. **Evidence + MemoryPolicy**  
    `order.confirmed`：成交 SKU `observe` 正向。  
    `preference_adjusted`：对 `from_sku` `adjust(delta=-1)`。  
-   净 `count = max(0, positive_count - negative_count)`，禁止为负。预留正负计数以便解释历史。  
+   工作净 `count` 用 delta 调整，禁止为负。`positive_count` / `negative_count` 记录历史。无正向证据时的负向不形成未来债务。  
    修正事件 **不得** 写 `product_default`。长期默认仍：该 SKU 的确认证据净 count ≥ 阈值。
 
 纠错只来自确认后的结构化业务事实。Extractor 禁止读用户原话。

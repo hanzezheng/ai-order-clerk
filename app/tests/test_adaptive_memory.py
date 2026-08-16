@@ -155,6 +155,11 @@ def test_evidence_delta_keeps_non_negative_net_and_preserves_signed_counts():
     store.observe(customer_id=customer_id, kind="product_default", node_id=node_id, sku_id=sku_id)
     store.observe(customer_id=customer_id, kind="product_default", node_id=node_id, sku_id=sku_id)
     store.observe(customer_id=customer_id, kind="product_default", node_id=node_id, sku_id=sku_id)
+    after_pos = store.get(customer_id=customer_id, kind="product_default", node_id=node_id, sku_id=sku_id)
+    assert after_pos is not None
+    assert after_pos.count == 3
+    assert after_pos.positive_count == 3
+    assert after_pos.negative_count == 1
     record = store.adjust(
         customer_id=customer_id,
         kind="product_default",
@@ -164,5 +169,5 @@ def test_evidence_delta_keeps_non_negative_net_and_preserves_signed_counts():
     )
     assert record.positive_count == 3
     assert record.negative_count == 2
-    assert record.count == 1
+    assert record.count == 2
     assert record.status == "pending"

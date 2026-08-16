@@ -13,6 +13,7 @@ from app.services.ports import SessionRepository
 from app.session.runner import SalesSessionRunner
 from app.session.timeline import SessionTimelineStore
 from app.entity.events import RecordingEventPublisher
+from app.workbench.service import WorkbenchService
 
 
 class TurnCommand(BaseModel):
@@ -41,11 +42,13 @@ class TurnIntake:
         sessions: SessionRepository,
         events: RecordingEventPublisher,
         timeline: SessionTimelineStore,
+        workbench: WorkbenchService | None = None,
     ) -> None:
         self._runner = runner
         self._sessions = sessions
         self._events = events
         self._timeline = timeline
+        self._workbench = workbench
         self._receipts: dict[tuple[UUID, str], dict[str, Any]] = {}
         self._last_seq: dict[UUID, int] = {}
 
@@ -54,6 +57,8 @@ class TurnIntake:
         self._sessions.save(session)
         stored = self._sessions.get(session.session_id)
         assert stored is not None
+        if self._workbench is not None:
+            self._workbench.register(stored)
         return stored
 
     def get_session(self, session_id: UUID) -> SalesSession:
@@ -75,6 +80,8 @@ class TurnIntake:
         cached = self._receipts.get((session_id, command.utterance_id))
         if cached is not None:
             return cached
+        if session.draft.status == "confirmed" or session.status == "confirmed":
+            raise IntakeError(409, "task_completed")
         if not command.is_final:
             return self._ignored_payload(session)
         self._assert_seq(session_id, command.seq)
@@ -82,6 +89,8 @@ class TurnIntake:
         live = result.session
         self._timeline.project_domain(live, self._events.events)
         self._timeline.project_session_blocks(live, result.verdict.issues)
+        if self._workbench is not None:
+            self._workbench.sync(live)
         payload = self._accepted_payload(live, result)
         self._receipts[(session_id, command.utterance_id)] = payload
         self._last_seq[session_id] = command.seq

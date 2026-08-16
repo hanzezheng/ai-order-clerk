@@ -22,6 +22,7 @@ from app.services.product_resolver import ProductResolver
 from app.session.intake import TurnIntake
 from app.session.runner import SalesSessionRunner
 from app.session.timeline import SessionTimelineStore
+from app.workbench.service import WorkbenchService
 
 
 @dataclass
@@ -32,6 +33,7 @@ class AppWorld:
     catalog: InMemoryCatalog
     timeline: SessionTimelineStore
     intake: TurnIntake
+    workbench: WorkbenchService
 
 
 def build_app_world(parser: TurnParser | None = None) -> AppWorld:
@@ -40,6 +42,7 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
     orders = InMemoryOrders()
     events = RecordingEventPublisher()
     timeline = SessionTimelineStore()
+    workbench = WorkbenchService()
     ontology = OntologyService(catalog)
     customers = CustomerService(catalog)
     order_service = OrderService(orders, ontology, events)
@@ -63,7 +66,13 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
         context_loader=ContextLoader(catalog, catalog.prices),
         events=events,
     )
-    intake = TurnIntake(runner=runner, sessions=sessions, events=events, timeline=timeline)
+    intake = TurnIntake(
+        runner=runner,
+        sessions=sessions,
+        events=events,
+        timeline=timeline,
+        workbench=workbench,
+    )
     return AppWorld(
         runner=runner,
         sessions=sessions,
@@ -71,6 +80,7 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
         catalog=catalog,
         timeline=timeline,
         intake=intake,
+        workbench=workbench,
     )
 
 

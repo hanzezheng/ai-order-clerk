@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from app.api.routers import health, sessions
+from app.api.routers import health, sessions, workbench
 from app.bootstrap import AppWorld, build_app_world
 
 DEMO_PAGE = Path(__file__).resolve().parent / "api" / "static" / "index.html"
@@ -16,6 +16,7 @@ def create_app(world: AppWorld | None = None) -> FastAPI:
     app.state.world = world or build_app_world()
     app.include_router(health.router)
     app.include_router(sessions.router)
+    app.include_router(workbench.router)
 
     @app.get("/")
     def demo_shell() -> FileResponse:

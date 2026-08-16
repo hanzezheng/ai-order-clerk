@@ -4,7 +4,7 @@
 >
 > 冻结：不改 Prompt、Resolver、Policy、`confirm_gate`、OrderService、Memory。不上 ASR/TTS、ERP、LangGraph、Tool Calling。失败只记录，不为通过测试放宽闸门。
 
-L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。本文件是 L4 金脚本准入。
+L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。parser.v5 只修正 G1 句中货名+规格的归属。本文件是 L4 金脚本准入。
 
 ---
 
@@ -88,3 +88,22 @@ Runtime：G1 fail；G2 / G3 / G4 未出现在失败脚本中。taxonomy：`spec_
 G1 在「加两个金边榴莲」之后说「苹果要烟台八零果」。Session focus 在榴莲。`parser.v4` 写着规格「槽位只用 spec_mention」，光杆 `refine_spec` 会打在最后一行，苹果保持 hang，确认失败。这正好是 `spec_lost×1` + `wrong_act×1`。G2 的「统货」能过，是因为当时只有苹果一行。
 
 下一阶段若升 Prompt（如 parser.v5），只允许改语言契约：句中带货名的规格必须带着 `product_mention`，禁止拆成「光杆 refine_spec」。不得为此改闸门或让模型选 SKU。
+
+---
+
+## parser.v5
+
+Runtime 已 pin `parser.v5`。不改 Resolver / Policy / Confirm Gate / Memory。
+
+请用真模型重跑 L1 与 G1–G4（G1 默认三轮）：
+
+```text
+export RUN_LIVE_LLM=1
+export LLM_API_KEY=…
+export LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+export LLM_MODEL=qwen3.7-plus
+python3 -m app.agent.live_eval
+python3 -m app.agent.runtime_admission
+```
+
+未得 A 之前仍不上语音。

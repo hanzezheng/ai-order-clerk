@@ -23,7 +23,9 @@ LlmActType = Literal[
 
 
 class LlmActSlots(BaseModel):
-    """LLM 语言槽。禁止 sku_id / customer_id / 店名 / 规格全称。spec_mention 只是口语规格，禁止映射 SKU。"""
+    """LLM 语言槽。禁止 sku_id / customer_id / line_id / 店名 / SKU 全称。
+    spec_mention 只是口语规格，禁止映射 SKU。句中同时有货名和规格时，必须与 product_mention 同槽。
+    """
 
     model_config = ConfigDict(extra="forbid")
 

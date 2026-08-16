@@ -19,9 +19,9 @@ from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 
 
-def test_prompt_id_is_pinned_v4():
-    assert PARSER_PROMPT_ID == "parser.v4"
-    assert LLMTurnParser.prompt_id == "parser.v4"
+def test_prompt_id_is_pinned_v5():
+    assert PARSER_PROMPT_ID == "parser.v5"
+    assert LLMTurnParser.prompt_id == "parser.v5"
     assert "不要选择 SKU" in PARSER_SYSTEM_PROMPT
     assert "不要写记忆" in PARSER_SYSTEM_PROMPT
     assert "不要判断能否确认" in PARSER_SYSTEM_PROMPT
@@ -31,6 +31,9 @@ def test_prompt_id_is_pinned_v4():
     assert "refine_spec" in PARSER_SYSTEM_PROMPT
     assert "再加20件" in PARSER_SYSTEM_PROMPT
     assert "product_mention" in PARSER_SYSTEM_PROMPT
+    assert "苹果要烟台八零果" in PARSER_SYSTEM_PROMPT
+    assert "槽位只用 spec_mention" not in PARSER_SYSTEM_PROMPT
+    assert "line_id" in PARSER_SYSTEM_PROMPT
 
 
 def test_qwen_flat_array_counts_as_model_pass_not_fallback():
@@ -76,7 +79,7 @@ def test_fake_dataset_is_unscored_and_has_required_report_fields():
     assert report.scored is False
     assert report.mode == "fake"
     assert report.model == "fake"
-    assert report.prompt_id == "parser.v4"
+    assert report.prompt_id == "parser.v5"
     assert report.veto is False
     assert report.stall_oral_pass_rate == 1.0
     blob = report_to_json(report)

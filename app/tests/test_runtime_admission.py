@@ -46,7 +46,7 @@ def test_report_lists_g_results_and_writes_markdown(tmp_path: Path):
     assert "Decision" in text
     path = write_report(report, out_dir=tmp_path)
     assert path.name == "runtime_admission_report.md"
-    assert "parser.v4" in path.read_text(encoding="utf-8")
+    assert PARSER_PROMPT_ID in path.read_text(encoding="utf-8")
 
 
 def test_live_admission_requires_explicit_switch(monkeypatch):
@@ -70,6 +70,22 @@ def test_bootstrap_does_not_import_sqlalchemy_at_module_level():
     assert "import sqlalchemy" not in bootstrap
     assert "build_world" not in admission
     assert "build_app_world" not in admission
+
+
+def test_g1_spec_utterance_matches_l1_case():
+    from app.agent.admission_scripts import admission_scripts
+    from app.agent.evaluation import load_parser_cases
+
+    g1 = next(item for item in admission_scripts() if item.script_id == "G1")
+    step = next(item for item in g1.steps if item.text == "苹果要烟台八零果")
+    assert step.fake_acts == [
+        {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "烟台八零果"}}
+    ]
+    _rev, cases = load_parser_cases()
+    case = next(item for item in cases if item.text == "苹果要烟台八零果")
+    assert case.expected_acts == step.fake_acts
+    assert "line_id" not in step.fake_acts[0]["slots"]
+    assert "sku_id" not in step.fake_acts[0]["slots"]
 
 
 def test_admission_stays_in_memory_even_if_database_url_set(monkeypatch):

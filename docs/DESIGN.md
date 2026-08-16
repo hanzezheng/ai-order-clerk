@@ -877,7 +877,7 @@ Demo 是给农批老板看的开单员，不是开发测试台。只改 `app/api
 - 标题「AI开单员」；顶部只显示当前客户，未开单时显示「还没有开始开单」
 - AI 区**默认**展示后端 `reply_text`（Sprint 6A.5 废止前端转写）。开发模式仅 `?dev=1`。
 - 「本次订单」只读：客户、品名、数量、价格待定。禁止展示 id / source / confidence / policy / memory
-- Timeline、session id、commands、verdict 默认隐藏，开发模式才打开
+- Timeline、session id、commands、verdict 默认隐藏，仅 `/?dev=1` 打开
 - 主操作是巨大「按住说话」（V1 仍用文本模拟 ASR，无真麦克风）。「好了」是辅助按钮，老板也可以直接说「好了」
 
 前端状态机（只存在 Demo，不进 Session）：

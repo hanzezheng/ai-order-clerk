@@ -165,3 +165,16 @@ class IntakeSequenceRow(Base):
 
     session_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     last_seq: Mapped[int] = mapped_column(nullable=False)
+
+
+class OutboxRow(Base):
+    __tablename__ = "outbox_events"
+
+    event_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    aggregate_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    aggregate_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    session_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), index=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)

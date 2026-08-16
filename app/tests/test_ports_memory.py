@@ -27,7 +27,18 @@ from app.entity.timeline import TimelineEvent
 from app.memory.evidence import EvidenceStore
 from app.services.ports import MEMORY_EXTRACTOR_CONSUMER, TIMELINE_CONSUMER
 
-BUSINESS_DIRS = ("agent", "policy", "memory", "response", "services", "session", "workbench", "entity", "api")
+BUSINESS_DIRS = (
+    "agent",
+    "policy",
+    "memory",
+    "response",
+    "services",
+    "session",
+    "workbench",
+    "entity",
+    "api",
+    "events",
+)
 FORBIDDEN_IMPORTS = (
     "from app.database",
     "import app.database",
@@ -41,6 +52,7 @@ FORBIDDEN_IMPORTS = (
     "InMemoryProcessedEvents",
     "InMemoryWorkbench",
     "InMemoryIntakeReceipts",
+    "InMemoryOutbox",
 )
 
 

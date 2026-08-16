@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.entity.catalog import CustomerProfile, CustomerRecord, ProductNode
+from app.entity.events import OutboxRecord
 from app.entity.intake import IntakeReceipt
 from app.entity.memory import EvidenceRecord, PriceMemoryRecord
 from app.entity.order import DraftOrder
@@ -123,3 +124,34 @@ class OrderRepository:
 
     def get_draft(self, order_id: UUID) -> DraftOrder | None:
         raise NotImplementedError
+
+
+class OutboxRepository:
+    def append(self, record: OutboxRecord) -> None:
+        raise NotImplementedError
+
+    def get(self, event_id: UUID) -> OutboxRecord | None:
+        raise NotImplementedError
+
+    def list_pending(
+        self,
+        consumer: str,
+        *,
+        event_types: tuple[str, ...] | None = None,
+        limit: int = 500,
+    ) -> list[OutboxRecord]:
+        raise NotImplementedError
+
+
+class UnitOfWork:
+    def begin(self) -> None:
+        raise NotImplementedError
+
+    def commit(self) -> None:
+        raise NotImplementedError
+
+    def rollback(self) -> None:
+        raise NotImplementedError
+
+    def active(self) -> bool:
+        return False

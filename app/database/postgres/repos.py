@@ -3,9 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.database.postgres.models import (
@@ -16,6 +15,7 @@ from app.database.postgres.models import (
     IntakeSequenceRow,
     OrderLineRow,
     OrderRow,
+    OutboxRow,
     PriceMemoryRow,
     ProcessedEventRow,
     ProductAliasRow,
@@ -24,7 +24,9 @@ from app.database.postgres.models import (
     TimelineRow,
     WorkbenchShiftRow,
 )
+from app.database.postgres.sessioning import finish_write, repo_session
 from app.entity.catalog import CustomerProfile, CustomerRecord, ProductNode
+from app.entity.events import OutboxRecord
 from app.entity.intake import IntakeReceipt
 from app.entity.memory import EvidenceRecord, PriceMemoryRecord
 from app.entity.order import DraftOrder
@@ -37,6 +39,7 @@ from app.services.ports import (
     EvidenceRepository,
     IntakeReceiptRepository,
     OrderRepository,
+    OutboxRepository,
     PriceMemoryRepository,
     ProcessedEventRepository,
     SessionRepository,
@@ -113,32 +116,32 @@ class PostgresCatalog(CatalogRepository):
         self.prices = PostgresPriceRepository(engine)
 
     def list_customers(self) -> list[CustomerRecord]:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             rows = db.scalars(select(CustomerRow)).all()
             return [_customer_from_row(row) for row in rows]
 
     def get_customer(self, customer_id: UUID) -> CustomerRecord | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(CustomerRow, customer_id)
             return _customer_from_row(row) if row is not None else None
 
     def get_profile(self, customer_id: UUID) -> CustomerProfile | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(CustomerProfileRow, customer_id)
             return _profile_from_row(row) if row is not None else None
 
     def list_nodes(self) -> list[ProductNode]:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             rows = db.scalars(select(ProductNodeRow)).all()
             return [_node_from_row(row) for row in rows]
 
     def get_node(self, node_id: UUID) -> ProductNode | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(ProductNodeRow, node_id)
             return _node_from_row(row) if row is not None else None
 
     def put_customer(self, customer: CustomerRecord, profile: CustomerProfile) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(CustomerRow, customer.id)
             if row is None:
                 db.add(
@@ -186,10 +189,10 @@ class PostgresCatalog(CatalogRepository):
                 prow.preferred_uoms = dict(profile.preferred_uoms)
                 flag_modified(prow, "product_defaults")
                 flag_modified(prow, "preferred_uoms")
-            db.commit()
+            finish_write(db)
 
     def put_product_default(self, customer_id: UUID, node_id: UUID, sku_id: UUID) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             prow = db.get(CustomerProfileRow, customer_id)
             if prow is None:
                 return
@@ -197,7 +200,7 @@ class PostgresCatalog(CatalogRepository):
             defaults[str(node_id)] = str(sku_id)
             prow.product_defaults = defaults
             flag_modified(prow, "product_defaults")
-            db.commit()
+            finish_write(db)
 
 
 class PostgresAliasRepository(AliasRepository):
@@ -205,21 +208,21 @@ class PostgresAliasRepository(AliasRepository):
         self._engine = engine
 
     def put(self, alias: str, node_id: UUID) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(ProductAliasRow, alias)
             if row is None:
                 db.add(ProductAliasRow(alias=alias, node_id=node_id))
             else:
                 row.node_id = node_id
-            db.commit()
+            finish_write(db)
 
     def get(self, alias: str) -> UUID | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(ProductAliasRow, alias)
             return row.node_id if row is not None else None
 
     def snapshot(self) -> list[tuple[str, UUID]]:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             rows = db.scalars(select(ProductAliasRow)).all()
             return [(row.alias, row.node_id) for row in rows]
 
@@ -229,7 +232,7 @@ class PostgresPriceRepository(PriceMemoryRepository):
         self._engine = engine
 
     def put(self, record: PriceMemoryRecord) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             existing = db.scalars(
                 select(PriceMemoryRow).where(
                     PriceMemoryRow.price_type == record.price_type,
@@ -256,10 +259,10 @@ class PostgresPriceRepository(PriceMemoryRepository):
                     last_confirmed_at=record.last_confirmed_at,
                 )
             )
-            db.commit()
+            finish_write(db)
 
     def snapshot(self) -> list[PriceMemoryRecord]:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             rows = db.scalars(select(PriceMemoryRow)).all()
             return [_price_from_row(row) for row in rows]
 
@@ -276,7 +279,7 @@ class PostgresEvidenceRepository(EvidenceRepository):
         node_id: UUID,
         sku_id: UUID,
     ) -> EvidenceRecord | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(EvidenceRow, (customer_id, kind, node_id, sku_id))
             if row is None:
                 return None
@@ -293,7 +296,7 @@ class PostgresEvidenceRepository(EvidenceRepository):
             )
 
     def put(self, record: EvidenceRecord) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(
                 EvidenceRow, (record.customer_id, record.kind, record.node_id, record.sku_id)
             )
@@ -317,7 +320,7 @@ class PostgresEvidenceRepository(EvidenceRepository):
                 row.negative_count = record.negative_count
                 row.status = record.status
                 row.last_confirmed_at = record.last_confirmed_at
-            db.commit()
+            finish_write(db)
 
 
 class PostgresSessionRepository(SessionRepository):
@@ -325,7 +328,7 @@ class PostgresSessionRepository(SessionRepository):
         self._engine = engine
 
     def get(self, session_id: UUID) -> SalesSession | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(SessionRow, session_id)
             if row is None:
                 return None
@@ -333,7 +336,7 @@ class PostgresSessionRepository(SessionRepository):
 
     def save(self, session: SalesSession) -> None:
         payload = session.model_dump(mode="json")
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(SessionRow, session.session_id)
             if row is None:
                 db.add(
@@ -349,7 +352,7 @@ class PostgresSessionRepository(SessionRepository):
                 row.payload = payload
                 row.updated_at = _now()
                 flag_modified(row, "payload")
-            db.commit()
+            finish_write(db)
 
 
 class PostgresOrderRepository(OrderRepository):
@@ -359,7 +362,7 @@ class PostgresOrderRepository(OrderRepository):
     def save_draft(self, draft: DraftOrder) -> None:
         payload = draft.model_dump(mode="json")
         customer_id = draft.customer.id if draft.customer is not None else None
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(OrderRow, draft.order_id)
             if row is None:
                 db.add(
@@ -392,10 +395,10 @@ class PostgresOrderRepository(OrderRepository):
                         line_status=line.line_status,
                     )
                 )
-            db.commit()
+            finish_write(db)
 
     def get_draft(self, order_id: UUID) -> DraftOrder | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(OrderRow, order_id)
             if row is None:
                 return None
@@ -407,7 +410,7 @@ class PostgresTimelineRepository(TimelineRepository):
         self._engine = engine
 
     def list(self, session_id: UUID) -> list[TimelineEvent]:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             rows = db.scalars(
                 select(TimelineRow)
                 .where(TimelineRow.session_id == session_id)
@@ -426,7 +429,7 @@ class PostgresTimelineRepository(TimelineRepository):
 
     def append(self, event: TimelineEvent) -> TimelineEvent:
         stored = event.model_copy(deep=True)
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             db.add(
                 TimelineRow(
                     event_id=stored.event_id,
@@ -436,7 +439,7 @@ class PostgresTimelineRepository(TimelineRepository):
                     payload=dict(stored.payload),
                 )
             )
-            db.commit()
+            finish_write(db)
         return stored
 
 
@@ -445,14 +448,14 @@ class PostgresProcessedEvents(ProcessedEventRepository):
         self._engine = engine
 
     def has(self, consumer: str, event_id: UUID) -> bool:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             return db.get(ProcessedEventRow, (consumer, event_id)) is not None
 
     def mark(self, consumer: str, event_id: UUID) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             if db.get(ProcessedEventRow, (consumer, event_id)) is None:
                 db.add(ProcessedEventRow(consumer=consumer, event_id=event_id))
-                db.commit()
+                finish_write(db)
 
 
 class PostgresWorkbenchRepository(WorkbenchRepository):
@@ -462,7 +465,7 @@ class PostgresWorkbenchRepository(WorkbenchRepository):
         self._engine = engine
 
     def get_shift(self) -> WorkbenchShift:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(WorkbenchShiftRow, self.SHIFT_ID)
             if row is None:
                 return WorkbenchShift()
@@ -475,7 +478,7 @@ class PostgresWorkbenchRepository(WorkbenchRepository):
 
     def save_shift(self, shift: WorkbenchShift) -> None:
         tasks = [item.model_dump(mode="json") for item in shift.tasks]
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(WorkbenchShiftRow, self.SHIFT_ID)
             if row is None:
                 db.add(
@@ -491,7 +494,7 @@ class PostgresWorkbenchRepository(WorkbenchRepository):
                 row.current_session_id = shift.current_session_id
                 row.tasks = tasks
                 flag_modified(row, "tasks")
-            db.commit()
+            finish_write(db)
 
 
 class PostgresIntakeReceipts(IntakeReceiptRepository):
@@ -499,7 +502,7 @@ class PostgresIntakeReceipts(IntakeReceiptRepository):
         self._engine = engine
 
     def get(self, session_id: UUID, utterance_id: str) -> IntakeReceipt | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.scalars(
                 select(IntakeReceiptRow).where(
                     IntakeReceiptRow.session_id == session_id,
@@ -515,7 +518,7 @@ class PostgresIntakeReceipts(IntakeReceiptRepository):
             )
 
     def put(self, receipt: IntakeReceipt) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.scalars(
                 select(IntakeReceiptRow).where(
                     IntakeReceiptRow.session_id == receipt.session_id,
@@ -533,18 +536,86 @@ class PostgresIntakeReceipts(IntakeReceiptRepository):
             else:
                 row.payload = dict(receipt.payload)
                 flag_modified(row, "payload")
-            db.commit()
+            finish_write(db)
 
     def last_seq(self, session_id: UUID) -> int | None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(IntakeSequenceRow, session_id)
             return row.last_seq if row is not None else None
 
     def set_last_seq(self, session_id: UUID, seq: int) -> None:
-        with Session(self._engine) as db:
+        with repo_session(self._engine) as db:
             row = db.get(IntakeSequenceRow, session_id)
             if row is None:
                 db.add(IntakeSequenceRow(session_id=session_id, last_seq=seq))
             else:
                 row.last_seq = seq
-            db.commit()
+            finish_write(db)
+
+
+class PostgresOutboxRepository(OutboxRepository):
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+
+    def append(self, record: OutboxRecord) -> None:
+        stored = record.model_copy(deep=True)
+        with repo_session(self._engine) as db:
+            if db.get(OutboxRow, stored.event_id) is not None:
+                finish_write(db)
+                return
+            db.add(
+                OutboxRow(
+                    event_id=stored.event_id,
+                    event_type=stored.event_type,
+                    aggregate_type=stored.aggregate_type,
+                    aggregate_id=stored.aggregate_id,
+                    session_id=stored.session_id,
+                    payload=dict(stored.payload),
+                    occurred_at=stored.occurred_at,
+                    recorded_at=stored.recorded_at,
+                )
+            )
+            finish_write(db)
+
+    def get(self, event_id: UUID) -> OutboxRecord | None:
+        with repo_session(self._engine) as db:
+            row = db.get(OutboxRow, event_id)
+            return _outbox_from_row(row) if row is not None else None
+
+    def list_pending(
+        self,
+        consumer: str,
+        *,
+        event_types: tuple[str, ...] | None = None,
+        limit: int = 500,
+    ) -> list[OutboxRecord]:
+        with repo_session(self._engine) as db:
+            stmt = (
+                select(OutboxRow)
+                .where(
+                    ~exists(
+                        select(ProcessedEventRow.event_id).where(
+                            ProcessedEventRow.consumer == consumer,
+                            ProcessedEventRow.event_id == OutboxRow.event_id,
+                        )
+                    )
+                )
+                .order_by(OutboxRow.recorded_at, OutboxRow.event_id)
+                .limit(limit)
+            )
+            if event_types is not None:
+                stmt = stmt.where(OutboxRow.event_type.in_(event_types))
+            return [_outbox_from_row(row) for row in db.scalars(stmt).all()]
+
+
+def _outbox_from_row(row: OutboxRow) -> OutboxRecord:
+    return OutboxRecord(
+        event_id=row.event_id,
+        event_type=row.event_type,
+        aggregate_type=row.aggregate_type,
+        aggregate_id=row.aggregate_id,
+        session_id=row.session_id,
+        payload=dict(row.payload or {}),
+        occurred_at=row.occurred_at,
+        recorded_at=row.recorded_at,
+    )

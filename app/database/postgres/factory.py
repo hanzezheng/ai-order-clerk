@@ -10,6 +10,7 @@ from app.database.postgres.repos import (
     PostgresEvidenceRepository,
     PostgresIntakeReceipts,
     PostgresOrderRepository,
+    PostgresOutboxRepository,
     PostgresProcessedEvents,
     PostgresSessionRepository,
     PostgresTimelineRepository,
@@ -46,4 +47,5 @@ def postgres_bundle(engine: Engine) -> PersistenceBundle:
         processed=PostgresProcessedEvents(engine),
         workbench=PostgresWorkbenchRepository(engine),
         receipts=PostgresIntakeReceipts(engine),
+        outbox=PostgresOutboxRepository(engine),
     )

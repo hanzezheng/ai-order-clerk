@@ -9,7 +9,6 @@ from app.entity.session import SalesSession
 from app.entity.speech import SpeechAct
 from app.memory.evidence import EvidenceStore
 from app.services.catalog_service import OntologyService
-from app.services.ports import MEMORY_EXTRACTOR_CONSUMER, ProcessedEventRepository
 
 
 class MemoryExtractor:
@@ -19,11 +18,9 @@ class MemoryExtractor:
         self,
         *,
         evidence: EvidenceStore,
-        processed: ProcessedEventRepository,
         ontology: OntologyService | None = None,
     ) -> None:
         self._evidence = evidence
-        self._processed = processed
         self._ontology = ontology
 
     def extract(self, act: SpeechAct, session: SalesSession) -> list[MemoryCandidate]:
@@ -36,8 +33,6 @@ class MemoryExtractor:
         confirmed: list[DomainEvent] = []
         adjusted: list[DomainEvent] = []
         for event in events:
-            if self._processed.has(MEMORY_EXTRACTOR_CONSUMER, event.event_id):
-                continue
             if event.aggregate_id != order_id:
                 continue
             if event.event_type == ORDER_CONFIRMED:
@@ -45,10 +40,8 @@ class MemoryExtractor:
             elif event.event_type == PREFERENCE_ADJUSTED:
                 adjusted.append(event)
         for event in confirmed:
-            self._processed.mark(MEMORY_EXTRACTOR_CONSUMER, event.event_id)
             out.extend(self._from_confirmed_draft(session))
         for event in adjusted:
-            self._processed.mark(MEMORY_EXTRACTOR_CONSUMER, event.event_id)
             out.extend(self._from_preference_adjusted(event))
         return out
 

@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -398,6 +398,16 @@ erDiagram
 | Session / Order | 工作态 Session 与草稿双写 |
 
 禁止启动时重放 `order.confirmed` 来恢复 Evidence。Entity 仍是领域契约。
+
+### 3.5 Durable Outbox（Sprint 11）
+
+确认后的领域事件写入同库 Outbox，作为可靠事实出口。不是消息平台，不是 Event Sourcing。
+
+- 事务 A：业务状态与 Outbox 同行提交。
+- 事务 B：每个 `(consumer, event_id)` 的副作用与 `processed_events.mark` 同行提交。
+- `OutboxRepository` 只提供 `append` / `get` / `list_pending(consumer)`。禁止在 outbox 行上写「已消费」。
+- `EventDispatcher` 在装配层：业务只 `publish`。Memory / Timeline 只消费 Outbox pending，禁止扫描进程事件列表。
+- 禁止启动 replay 全量历史来重建 Evidence。
 
 ---
 
@@ -854,6 +864,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8h. Sprint 9A Workbench：当日销售任务组织；一单仍一个 SalesSession；显式 `POST /v1/workbench/tasks` 开下一单。不自动路由 `start_order`。冻结 Parser / Resolver / `confirm_gate` / OrderService / Memory / Response。  
 8i. Sprint 10A Persistence Ports：补齐 Catalog write / Alias / PriceMemory / Evidence / Timeline / Workbench / ProcessedEvent / IntakeReceipt。业务层禁止依赖 InMemory。行为完全一致。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
 8j. Sprint 10B PostgreSQL：同一套 Port 的可重启实现，只存在 database 层。Kill & Restart 后客户、Evidence、Workbench、未完成 Session 仍在。  
+8k. Sprint 11 Durable Event Boundary：同库最小 Outbox；Memory/Timeline 消费 pending；事务 A/B。不建设消息平台，不接 ERP。冻结 Parser / Resolver / Policy / OrderService / Response / Memory 规则。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -1041,5 +1052,13 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
 `SalesSession` 工作态 JSONB 快照；订单继续 `save(session)` + `save_draft` 双写。种子与 migration 分开；稳定 UUID upsert，禁止覆盖已学习档案。
 
 Kill & Restart：新进程 / 新 `AppWorld` 连同一库后，客户、Evidence、Workbench、未完成 Session 仍在。已确认 turns 仍 `409`。禁止重放事件流恢复 Evidence。
+
+冻结：Parser、Resolver 主流程、Policy、OrderService、Response、Memory 规则。
+
+### 14.11 Durable Event Boundary（Sprint 11）
+
+目标：确认后的业务事件可靠存在，成为扩展出口。不是 Kafka，不是 ERP。
+
+`EventDispatcher` 在装配层：业务只 `publish`。Memory / Timeline 消费 Outbox。`processed_events` 仍按 consumer 隔离。Evidence 仍禁止用历史事件 replay 重建。
 
 冻结：Parser、Resolver 主流程、Policy、OrderService、Response、Memory 规则。

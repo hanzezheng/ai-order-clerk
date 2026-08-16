@@ -33,7 +33,6 @@ class SessionTimelineStore:
             belongs = belongs or event.aggregate_id == order_id
             if not belongs:
                 continue
-            self._processed.mark(TIMELINE_CONSUMER, event.event_id)
             self.append(
                 TimelineEvent(
                     event_id=event.event_id,
@@ -43,6 +42,7 @@ class SessionTimelineStore:
                     payload=dict(payload),
                 )
             )
+            self._processed.mark(TIMELINE_CONSUMER, event.event_id)
 
     def project_session_blocks(self, session: SalesSession, issues: list[Issue]) -> None:
         for issue in issues:

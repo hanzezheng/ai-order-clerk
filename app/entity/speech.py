@@ -38,3 +38,6 @@ class TurnParse(BaseModel):
     is_final: bool = True
     acts: list[SpeechAct] = Field(default_factory=list)
     raw_text: str = ""
+    parser_name: str = "rule"
+    fallback: bool = False
+    fallback_reason: str | None = None

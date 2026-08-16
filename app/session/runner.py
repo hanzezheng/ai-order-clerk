@@ -8,7 +8,7 @@ from app.entity.order import Quantity
 from app.entity.price import PriceQuote
 from app.entity.session import SalesSession, TurnResult
 from app.entity.speech import SpeechAct
-from app.agent.turn_parser import RuleTurnParser
+from app.agent.parser import TurnParser
 from app.memory.extractor import MemoryExtractor
 from app.memory.policy import MemoryPolicy
 from app.policy.decision import DecisionPolicy
@@ -26,7 +26,7 @@ class SalesSessionRunner:
     def __init__(
         self,
         *,
-        parser: RuleTurnParser,
+        parser: TurnParser,
         policy: DecisionPolicy,
         customers: CustomerService,
         ontology: OntologyService,

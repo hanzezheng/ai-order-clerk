@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.agent.parser import TurnParser
 from app.agent.turn_parser import RuleTurnParser
 from app.database.memory import InMemoryCatalog, InMemoryOrders, InMemorySessions
 from app.entity.events import RecordingEventPublisher
@@ -15,7 +16,7 @@ from app.services.product_resolver import ProductResolver
 from app.session.runner import SalesSessionRunner
 
 
-def build_world() -> tuple[SalesSessionRunner, RecordingEventPublisher, InMemoryCatalog]:
+def build_world(parser: TurnParser | None = None) -> tuple[SalesSessionRunner, RecordingEventPublisher, InMemoryCatalog]:
     catalog = InMemoryCatalog()
     sessions = InMemorySessions()
     orders = InMemoryOrders()
@@ -25,7 +26,7 @@ def build_world() -> tuple[SalesSessionRunner, RecordingEventPublisher, InMemory
     order_service = OrderService(orders, ontology, events)
     policy = DecisionPolicy(ontology)
     runner = SalesSessionRunner(
-        parser=RuleTurnParser(),
+        parser=parser or RuleTurnParser(),
         policy=policy,
         customers=customers,
         ontology=ontology,

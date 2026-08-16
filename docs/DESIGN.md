@@ -135,6 +135,8 @@ AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否
 - **session**：本单工作记忆。
 - **memory**：Extract → MemoryPolicy → MemoryService。禁止订单确认直接写长期记忆。
 
+`TurnParser`（`parse(text) -> TurnParse`）是唯一语言入口。`RuleTurnParser` 与 `LLMTurnParser` 可互换。LLM 只抽 SpeechAct；失败必须 fallback 到规则 Parser，并保留 `parser_name` / `fallback` / `fallback_reason`。LLM 输出 Schema 经转换层才变成领域 `SpeechAct`。禁止依赖 LLM 才能开单。
+
 `RuleTurnParser` 只做「文本 → SpeechAct」：动词、数量、单位、改口标记。禁止依赖商品本体、客户、价格或别名表。
 
 

@@ -70,7 +70,7 @@ class RuleTurnParser:
         acts.extend(self._fold(tokens))
         if not acts:
             acts.append(SpeechAct(type="clarify", slots={"mention": raw}, span=raw))
-        return TurnParse(raw_text=text, acts=acts, is_final=True)
+        return TurnParse(raw_text=text, acts=acts, is_final=True, parser_name="rule")
 
     def _tokenize(self, text: str) -> list[tuple[str, str]]:
         if not text:

@@ -21,6 +21,9 @@ class TemplateResponseGenerator:
     """只拼接 ReplyPlan 字段与固定虚词。禁止读 Session / Catalog。"""
 
     def generate(self, plan: ReplyPlan) -> str:
+        if plan.question and plan.question.code == "customer_unknown":
+            who = plan.question.option_labels[0] if plan.question.option_labels else ""
+            return f"还没有{who}的信息，档口是哪一个？"
         if plan.question and plan.question.code == "customer_ambiguous":
             names = "、".join(plan.question.option_labels)
             return f"{_GLUE_ASK}{names}"

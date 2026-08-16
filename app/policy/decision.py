@@ -17,6 +17,21 @@ class DecisionPolicy:
     def on_start_order(self, ref: CustomerRef) -> DecisionVerdict:
         if ref.id and not ref.candidates:
             return DecisionVerdict(allow_execute=True, reasons=["customer_unique"])
+        if ref.needs_distinguisher or (not ref.id and not ref.candidates):
+            return DecisionVerdict(
+                allow_execute=False,
+                issues=[
+                    Issue(
+                        code="customer_unknown",
+                        block_level="session_block",
+                        ask_when="now",
+                        options=[{"name": ref.name}],
+                        message="还没有这位老板的信息，档口是哪一个？",
+                    )
+                ],
+                reply_mode="ask",
+                reasons=["customer_unknown"],
+            )
         if ref.candidates:
             return DecisionVerdict(
                 allow_execute=False,

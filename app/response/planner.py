@@ -65,6 +65,22 @@ def build_reply_plan(
     scope = "changed_only" if verdict.reply_mode == "ack" and not confirmed else "full"
 
     pending = list(session.pending_customer_candidates)
+    unknown = next((i for i in verdict.issues if i.code == "customer_unknown"), None)
+    if session.draft.customer is None and (session.pending_customer_create is not None or unknown):
+        mention = session.pending_customer_create.mention if session.pending_customer_create else ""
+        if not mention and unknown:
+            names = [str(opt.get("name") or "") for opt in unknown.options if opt.get("name")]
+            mention = names[0] if names else ""
+        labels = [mention] if mention else []
+        refs = [SourceRef(kind="customer", text=mention, origin="issue_option")] if mention else []
+        return ReplyPlan(
+            mode="ask",
+            reply_scope="full",
+            confirmed=False,
+            question=ReplyQuestion(code="customer_unknown", option_labels=labels),
+            source_refs=refs,
+            notices=[],
+        )
     amb = next((i for i in verdict.issues if i.code == "customer_ambiguous"), None)
     if pending or (amb and session.draft.customer is None):
         labels = [c.name for c in pending if c.name]

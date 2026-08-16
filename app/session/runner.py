@@ -8,7 +8,7 @@ from app.entity.events import PREFERENCE_ADJUSTED, DomainEvent, RecordingEventPu
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import Quantity
 from app.entity.price import PriceQuote
-from app.entity.session import SalesSession, TurnResult
+from app.entity.session import PendingCustomerCreate, SalesSession, TurnResult
 from app.entity.speech import SpeechAct
 from app.agent.parser import TurnParser
 from app.memory.extractor import MemoryExtractor
@@ -17,7 +17,7 @@ from app.policy.decision import DecisionPolicy
 from app.response.grounder import ReplyGrounder
 from app.response.planner import build_reply_plan
 from app.response.template import TemplateResponseGenerator
-from app.services.catalog_service import CustomerService, OntologyService
+from app.services.catalog_service import CustomerService, OntologyService, parse_distinguisher
 from app.services.context_loader import ContextLoader
 from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
@@ -68,7 +68,8 @@ class SalesSessionRunner:
         session.turn_index += 1
         parsed = self._parser.parse(text)
         acts = list(parsed.acts)
-        if session.pending_customer_candidates and not (acts and acts[0].type == "start_order"):
+        awaiting_customer = bool(session.pending_customer_candidates) or session.pending_customer_create is not None
+        if awaiting_customer and not (acts and acts[0].type == "start_order"):
             extras = [
                 a
                 for a in acts
@@ -101,6 +102,7 @@ class SalesSessionRunner:
                 self._orders.confirm(session)
                 executed.append("confirm_order")
                 self._publish_preference_adjusted(session)
+                self._observe_customer(session)
             reasons.extend(gate.reasons)
 
         if self._context_loader is not None:
@@ -158,27 +160,46 @@ class SalesSessionRunner:
             verdict = self._policy.on_start_order(ref)
             if not verdict.allow_execute:
                 session.pending_customer_candidates = ref.candidates
+                if ref.needs_distinguisher or not ref.candidates:
+                    session.pending_customer_create = PendingCustomerCreate(mention=ref.name)
                 return verdict
             assert ref.id is not None
+            session.pending_customer_create = None
+            session.pending_customer_candidates = []
             self._orders.start_draft(session, ref)
             return verdict
 
         if act.type == "clarify":
             mention = str(act.slots.get("mention") or act.span or "")
             chosen = self._customers.match_candidate(mention, session.pending_customer_candidates)
+            if chosen is None and session.pending_customer_create is not None:
+                stall, phone = parse_distinguisher(mention)
+                chosen = self._customers.create_candidate(
+                    session.pending_customer_create.mention,
+                    stall_no=stall,
+                    phone_tail=phone,
+                )
             if chosen is None:
                 return DecisionVerdict(
                     allow_execute=False,
                     issues=[
-                        Issue(code="customer_ambiguous", block_level="session_block", message="还是没对上是哪家")
+                        Issue(
+                            code="customer_unknown" if session.pending_customer_create else "customer_ambiguous",
+                            block_level="session_block",
+                            message="还是没对上是哪家",
+                        )
                     ],
                     reply_mode="ask",
                 )
+            session.pending_customer_create = None
+            session.pending_customer_candidates = []
             self._orders.start_draft(session, chosen)
             return DecisionVerdict(allow_execute=True, reasons=["customer_disambiguated"])
 
         if act.type in {"set_line", "add_line"}:
-            if session.draft.customer is None and session.pending_customer_candidates:
+            if session.draft.customer is None and (
+                session.pending_customer_candidates or session.pending_customer_create is not None
+            ):
                 session.line_buffer.append(act)
                 return DecisionVerdict(
                     allow_execute=False,
@@ -266,6 +287,9 @@ class SalesSessionRunner:
             profile,
             suppressed_node_ids=session.suppressed_default_node_ids,
         )
+        if filled.matched_node is None:
+            filled.status = "candidate"
+            self._record_mention_candidate(session, filled)
         customer_id = session.draft.customer.id if session.draft.customer else None
         sku = filled.resolved_sku
         if sku is not None and customer_id is not None:
@@ -335,6 +359,20 @@ class SalesSessionRunner:
         if line.mention.matched_node is not None:
             return line.mention.matched_node.id
         return line.matched_node_id
+
+    def _observe_customer(self, session: SalesSession) -> None:
+        customer = session.draft.customer
+        if customer is None or customer.id is None:
+            return
+        self._customers.record_confirm(customer.id)
+
+    def _record_mention_candidate(self, session: SalesSession, mention: ProductMention) -> None:
+        raw = (mention.raw or "").strip()
+        if not raw:
+            return
+        if any(item.raw == raw for item in session.product_mention_candidates):
+            return
+        session.product_mention_candidates.append(mention.model_copy(deep=True))
 
     def _default_uom(self, mention: ProductMention) -> str:
         node = mention.resolved_sku or mention.matched_node

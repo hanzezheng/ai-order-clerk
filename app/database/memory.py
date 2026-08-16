@@ -206,6 +206,10 @@ class InMemoryCatalog(CatalogRepository):
         defaults[str(node_id)] = sku_id
         self.profiles[customer_id] = profile.model_copy(update={"product_defaults": defaults})
 
+    def put_customer(self, customer: CustomerRecord, profile: CustomerProfile) -> None:
+        self.customers[customer.id] = customer
+        self.profiles[customer.id] = profile
+
     def list_nodes(self) -> list[ProductNode]:
         return list(self.nodes.values())
 

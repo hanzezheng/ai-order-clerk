@@ -28,6 +28,7 @@ class ProductMention(BaseModel):
     confidence: float = 0.0
     candidates: list[ProductNode] = Field(default_factory=list)
     filled_from: str | None = None
+    status: str = "resolved"
 
 
 class CustomerRef(BaseModel):
@@ -39,6 +40,8 @@ class CustomerRef(BaseModel):
     aliases: list[str] = Field(default_factory=list)
     match_confidence: float = 0.0
     candidates: list[CustomerRef] = Field(default_factory=list)
+    status: str = "trusted"
+    needs_distinguisher: bool = False
 
 
 class CustomerRecord(BaseModel):
@@ -48,6 +51,8 @@ class CustomerRecord(BaseModel):
     stall_no: str | None = None
     phones: list[str] = Field(default_factory=list)
     aliases: list[str] = Field(default_factory=list)
+    status: str = "trusted"
+    confirm_count: int = 0
 
 
 class CustomerProfile(BaseModel):

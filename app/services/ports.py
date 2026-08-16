@@ -23,6 +23,9 @@ class CatalogRepository:
     def get_node(self, node_id: UUID) -> ProductNode | None:
         raise NotImplementedError
 
+    def put_customer(self, customer: CustomerRecord, profile: CustomerProfile) -> None:
+        raise NotImplementedError
+
 
 class SessionRepository:
     def get(self, session_id: UUID) -> SalesSession | None:

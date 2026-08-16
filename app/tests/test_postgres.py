@@ -9,6 +9,7 @@ from app.bootstrap import build_app_world, new_session
 from app.database.memory import PEAR, PEAR_SKU, WANG_JI
 from app.database.postgres.factory import postgres_bundle
 from app.entity.catalog import CustomerProfile, CustomerRecord
+from app.entity.events import ORDER_CONFIRMED, OutboxRecord, aggregate_type_for
 from app.entity.intake import IntakeReceipt
 from app.entity.memory import PriceMemoryRecord
 from app.entity.session import SalesSession
@@ -114,6 +115,21 @@ def test_postgres_ports_roundtrip():
     assert receipt is not None
     assert receipt.payload == {"ok": True}
     assert bundle.receipts.last_seq(session.session_id) == 2
+    outbox_id = uuid4()
+    outbox_row = OutboxRecord(
+        event_id=outbox_id,
+        event_type=ORDER_CONFIRMED,
+        aggregate_type=aggregate_type_for(ORDER_CONFIRMED),
+        aggregate_id=session.draft.order_id,
+        session_id=session.session_id,
+        payload={"session_id": str(session.session_id)},
+    )
+    bundle.outbox.append(outbox_row)
+    assert bundle.outbox.get(outbox_id) is not None
+    assert bundle.outbox.list_pending(MEMORY_EXTRACTOR_CONSUMER)[0].event_id == outbox_id
+    bundle.processed.mark(MEMORY_EXTRACTOR_CONSUMER, outbox_id)
+    assert bundle.outbox.list_pending(MEMORY_EXTRACTOR_CONSUMER) == []
+    assert bundle.outbox.list_pending(TIMELINE_CONSUMER)[0].event_id == outbox_id
     _dispose(world)
 
 

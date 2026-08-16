@@ -8,6 +8,7 @@ from app.services.ports import (
     EvidenceRepository,
     IntakeReceiptRepository,
     OrderRepository,
+    OutboxRepository,
     PriceMemoryRepository,
     ProcessedEventRepository,
     SessionRepository,
@@ -28,3 +29,4 @@ class PersistenceBundle:
     processed: ProcessedEventRepository
     workbench: WorkbenchRepository
     receipts: IntakeReceiptRepository
+    outbox: OutboxRepository

@@ -4,7 +4,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.entity.catalog import CustomerProfile, ProductMention
-from app.entity.events import PREFERENCE_ADJUSTED, DomainEvent, RecordingEventPublisher
+from app.entity.events import PREFERENCE_ADJUSTED, DomainEvent, DomainEventPublisher
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import Quantity
 from app.entity.price import PriceQuote
@@ -46,7 +46,7 @@ class SalesSessionRunner:
         response_generator: TemplateResponseGenerator | None = None,
         reply_grounder: ReplyGrounder | None = None,
         context_loader: ContextLoader | None = None,
-        events: RecordingEventPublisher | None = None,
+        events: DomainEventPublisher | None = None,
     ) -> None:
         self._parser = parser
         self._policy = policy
@@ -136,7 +136,6 @@ class SalesSessionRunner:
             reply_text = self._response.generate(plan)
             fallback_reason = "grounding_violation"
         self._sessions.save(session)
-        self._commit_memory(session)
         return TurnResult(
             reply_text=reply_text,
             session=session,
@@ -147,12 +146,6 @@ class SalesSessionRunner:
             reply_fallback_reason=fallback_reason,
             reply_plan=plan,
         )
-
-    def _commit_memory(self, session: SalesSession) -> None:
-        events = list(getattr(self._events, "events", []) or [])
-        for candidate in self._memory_extractor.extract_from_events(session, events):
-            decision = self._memory_policy.decide(candidate)
-            self._memory_service.apply(candidate, decision)
 
     def _apply(self, session: SalesSession, act: SpeechAct, *, expect_more: bool) -> DecisionVerdict:
         if act.type == "start_order":

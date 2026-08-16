@@ -13,7 +13,6 @@ from app.entity.intake import IntakeReceipt
 from app.services.ports import IntakeReceiptRepository, SessionRepository
 from app.session.runner import SalesSessionRunner
 from app.session.timeline import SessionTimelineStore
-from app.entity.events import RecordingEventPublisher
 from app.workbench.service import WorkbenchService
 
 
@@ -41,14 +40,12 @@ class TurnIntake:
         *,
         runner: SalesSessionRunner,
         sessions: SessionRepository,
-        events: RecordingEventPublisher,
         timeline: SessionTimelineStore,
         receipts: IntakeReceiptRepository,
         workbench: WorkbenchService | None = None,
     ) -> None:
         self._runner = runner
         self._sessions = sessions
-        self._events = events
         self._timeline = timeline
         self._receipts = receipts
         self._workbench = workbench
@@ -88,7 +85,6 @@ class TurnIntake:
         self._assert_seq(session_id, command.seq)
         result = self._runner.handle(session, command.text, expect_more=command.expect_more)
         live = result.session
-        self._timeline.project_domain(live, self._events.events)
         self._timeline.project_session_blocks(live, result.verdict.issues)
         if self._workbench is not None:
             self._workbench.sync(live)

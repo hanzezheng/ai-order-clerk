@@ -23,6 +23,34 @@ class DomainEvent(BaseModel):
     event_id: UUID = Field(default_factory=uuid4)
 
 
+class OutboxRecord(BaseModel):
+    """可靠事实信封。不是投递状态机。"""
+
+    event_id: UUID
+    event_type: str
+    aggregate_type: str
+    aggregate_id: UUID
+    session_id: UUID | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    def to_event(self) -> DomainEvent:
+        return DomainEvent(
+            event_id=self.event_id,
+            event_type=self.event_type,
+            aggregate_id=self.aggregate_id,
+            payload=dict(self.payload),
+            occurred_at=self.occurred_at,
+        )
+
+
+def aggregate_type_for(event_type: str) -> str:
+    if event_type.startswith("memory."):
+        return "memory"
+    return "order"
+
+
 class DomainEventPublisher(Protocol):
     """销售内核只发布；库存/付款/采购消费者阶段 2 再接。"""
 
@@ -35,7 +63,7 @@ class NullEventPublisher:
 
 
 class RecordingEventPublisher:
-    """测试用：记录事件，不实现业务消费者。"""
+    """测试探针：记录本回合事件，不得作为 Memory/Timeline 消费来源。"""
 
     def __init__(self) -> None:
         self.events: list[DomainEvent] = []

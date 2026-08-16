@@ -5,16 +5,19 @@ from uuid import UUID, uuid5, NAMESPACE_DNS
 from app.entity.catalog import CustomerProfile, CustomerRecord, ProductNode
 from app.entity.intake import IntakeReceipt
 from app.entity.memory import EvidenceRecord, PriceMemoryRecord
+from app.entity.events import OutboxRecord
 from app.entity.order import DraftOrder
 from app.entity.session import SalesSession
 from app.entity.timeline import TimelineEvent
 from app.entity.workbench import WorkbenchShift
+from app.database.uow import InMemoryUnitOfWork
 from app.services.ports import (
     AliasRepository,
     CatalogRepository,
     EvidenceRepository,
     IntakeReceiptRepository,
     OrderRepository,
+    OutboxRepository,
     PriceMemoryRepository,
     ProcessedEventRepository,
     SessionRepository,
@@ -327,3 +330,51 @@ class InMemoryIntakeReceipts(IntakeReceiptRepository):
 
     def set_last_seq(self, session_id: UUID, seq: int) -> None:
         self._last_seq[session_id] = seq
+
+
+class InMemoryOutbox(OutboxRepository):
+    def __init__(self, uow: InMemoryUnitOfWork, processed: ProcessedEventRepository) -> None:
+        self._committed: list[OutboxRecord] = []
+        self._staged: list[OutboxRecord] = []
+        self._uow = uow
+        self._processed = processed
+        uow.on_commit(self._flush)
+        uow.on_rollback(self._clear_staged)
+
+    def append(self, record: OutboxRecord) -> None:
+        stored = record.model_copy(deep=True)
+        if self._uow.active():
+            self._staged.append(stored)
+        else:
+            self._committed.append(stored)
+
+    def get(self, event_id: UUID) -> OutboxRecord | None:
+        for item in (*self._committed, *self._staged):
+            if item.event_id == event_id:
+                return item.model_copy(deep=True)
+        return None
+
+    def list_pending(
+        self,
+        consumer: str,
+        *,
+        event_types: tuple[str, ...] | None = None,
+        limit: int = 500,
+    ) -> list[OutboxRecord]:
+        out: list[OutboxRecord] = []
+        for item in sorted(self._committed, key=lambda row: (row.recorded_at, row.event_id)):
+            if self._processed.has(consumer, item.event_id):
+                continue
+            if event_types is not None and item.event_type not in event_types:
+                continue
+            out.append(item.model_copy(deep=True))
+            if len(out) >= limit:
+                break
+        return out
+
+    def _flush(self) -> None:
+        self._committed.extend(self._staged)
+        self._staged = []
+
+    def _clear_staged(self) -> None:
+        self._staged = []

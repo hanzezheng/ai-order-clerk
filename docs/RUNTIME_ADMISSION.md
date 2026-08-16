@@ -10,6 +10,14 @@ L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。本文
 
 ## 怎么跑
 
+本入口只组 **InMemory** 世界（与 G1–G4 种子目录一致），不连 Postgres，因此不需要 `sqlalchemy`。L1 `live_eval` 本来就不经过 `bootstrap`。
+
+若本机还缺 pydantic 等语言层依赖：
+
+```text
+python3 -m pip install -e '.[dev]'
+```
+
 Fake（默认 CI，不发请求）：
 
 ```text

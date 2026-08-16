@@ -26,7 +26,7 @@ from app.agent.llm_parser import LLMTurnParser
 from app.agent.parser import TurnParser
 from app.agent.prompts import PARSER_PROMPT_ID
 from app.agent.turn_parser import RuleTurnParser
-from app.bootstrap import build_world, new_session
+from app.bootstrap import assemble_world, memory_bundle, new_session
 from app.entity.speech import SpeechAct, TurnParse
 
 EvalMode = Literal["fake", "live"]
@@ -222,7 +222,8 @@ def run_admission(*, mode: EvalMode, repeats: int = 1, client: LlmClient | None 
             pause = 0.25
     for _repeat in range(repeats):
         parser, capture = _build_parser(mode, llm)
-        runner, _events, catalog = build_world(parser=parser)
+        world = assemble_world(memory_bundle(), parser)
+        runner, catalog = world.runner, world.catalog
         batch: list[ScriptResult] = []
         for spec in admission_scripts():
             if pause and batch:

@@ -60,3 +60,20 @@ def test_admission_does_not_redefine_confirm_gate():
     text = Path(__file__).resolve().parents[1].joinpath("agent/runtime_admission.py").read_text(encoding="utf-8")
     scripts = Path(__file__).resolve().parents[1].joinpath("agent/admission_scripts.py").read_text(encoding="utf-8")
     assert "def confirm_gate" not in text + scripts
+
+
+def test_bootstrap_does_not_import_sqlalchemy_at_module_level():
+    bootstrap = Path(__file__).resolve().parents[1].joinpath("bootstrap.py").read_text(encoding="utf-8")
+    admission = Path(__file__).resolve().parents[1].joinpath("agent/runtime_admission.py").read_text(encoding="utf-8")
+    assert "from sqlalchemy" not in bootstrap
+    assert "import sqlalchemy" not in bootstrap
+    assert "build_world" not in admission
+    assert "build_app_world" not in admission
+
+
+def test_admission_stays_in_memory_even_if_database_url_set(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example.invalid/ai_clerk")
+    report = run_admission(mode="fake", repeats=1)
+    latest = {item.script_id: item for item in report.latest}
+    assert latest["G1"].passed
+    assert latest["G1"].semantic["customer_id"] == str(WANG_JI)

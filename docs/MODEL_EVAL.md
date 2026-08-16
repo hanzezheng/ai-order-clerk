@@ -73,7 +73,7 @@ Qwen 与 GPT **分别出报告**，不合成「平均分」。准入是「名单
 RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 ```
 
-产物默认 `docs/eval/runs/<utc>-<model>-parser.v1.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
+产物默认 `docs/eval/runs/<utc>-<model>-parser.v2.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
 
 运行切片：
 
@@ -120,14 +120,15 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 
 | 规则 | 说明 |
 | --- | --- |
-| `prompt_id` | 形如 `parser.v1`。Runtime 与 live 评测必须用同一 id |
+| `prompt_id` | 形如 `parser.v2`。Runtime 与 live 评测必须用同一 id |
 | 钉死内容 | 系统提示全文 + Schema 字段名。改字即升版本 |
 | 禁止写入 | Catalog 名、客户名、价格、SKU 全称、档案默认、草稿 |
 | 变更流程 | 先加 `parser.vN` 文本 → live 评测对比 vN-1 → 达标再切换 Runtime 指针 |
 | 评测报告 | 必须带 `prompt_id`。禁止「改了 Prompt 却沿用旧报告」 |
 | 自动优化 | 禁止（无 DSPy / 无根据失败集回写 Prompt） |
 
-`parser.v1` = 现网 Prompt（语言规则 + 禁止猜 SKU / 禁止编数字）。v2 只允许加**语言**例子（如何切 spec_mention），仍禁止加商品库。
+`parser.v1` = 语言规则 + 禁止猜 SKU / 禁止编数字。  
+`parser.v2` = v1 + 强制 `{"acts":[{"type","slots"}]}`，禁止顶层数组、禁止槽位与 type 同级摊开。当前 Runtime pin 为 `parser.v2`。仍禁止加商品库。
 
 Prompt 回归（无密钥也要跑）：现有「Prompt 不含 Catalog / 店名 / 价格」断言保留；新版本同样必须过。
 

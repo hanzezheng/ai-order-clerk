@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from typing import Any
 
+import json
+
 from pydantic import TypeAdapter, ValidationError
 
 from app.agent.llm_client import LlmClient
 from app.agent.llm_convert import llm_turn_to_domain
-from app.agent.llm_schema import LlmTurnParse
+from app.agent.llm_schema import LlmActSlots, LlmTurnParse
 from app.agent.parser import TurnParser
 from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 from app.entity.speech import TurnParse
 
 _ADAPTER = TypeAdapter(LlmTurnParse)
+_LANGUAGE_SLOT_KEYS = frozenset(LlmActSlots.model_fields)
 
 
 class LlmParseError(Exception):
@@ -33,16 +36,53 @@ def _strip_fences(raw: str) -> str:
     return text
 
 
+def normalize_llm_shape(payload: Any) -> Any:
+    """机械形状归一。不猜 SKU / 客户，不放宽业务字段。"""
+    if isinstance(payload, list):
+        payload = {"acts": payload}
+    if not isinstance(payload, dict):
+        return payload
+    acts = payload.get("acts")
+    if not isinstance(acts, list):
+        return payload
+    normalized_acts: list[Any] = []
+    for item in acts:
+        if not isinstance(item, dict):
+            normalized_acts.append(item)
+            continue
+        act = dict(item)
+        slots = act.get("slots")
+        lifted = dict(slots) if isinstance(slots, dict) else {}
+        for key in list(act.keys()):
+            if key not in _LANGUAGE_SLOT_KEYS:
+                continue
+            value = act.pop(key)
+            if key not in lifted or lifted[key] is None:
+                lifted[key] = value
+        if lifted:
+            act["slots"] = lifted
+        elif "slots" in act and not isinstance(act.get("slots"), dict):
+            act.pop("slots", None)
+        normalized_acts.append(act)
+    out = dict(payload)
+    out["acts"] = normalized_acts
+    return out
+
+
 def parse_llm_output(raw: Any) -> LlmTurnParse:
     if isinstance(raw, (str, bytes, bytearray)):
         text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else raw
-        return _ADAPTER.validate_json(_strip_fences(text))
-    return _ADAPTER.validate_python(raw)
+        payload: Any = json.loads(_strip_fences(text))
+    else:
+        payload = raw
+    return _ADAPTER.validate_python(normalize_llm_shape(payload))
 
 
 def _fallback_reason(exc: Exception) -> str:
     if isinstance(exc, LlmParseError):
         return exc.reason
+    if isinstance(exc, json.JSONDecodeError):
+        return "invalid_json"
     if isinstance(exc, ValidationError):
         kinds = {item["type"] for item in exc.errors()}
         if any("json" in kind for kind in kinds):

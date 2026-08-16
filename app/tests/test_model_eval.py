@@ -19,12 +19,36 @@ from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 
 
-def test_prompt_id_is_pinned_v1():
-    assert PARSER_PROMPT_ID == "parser.v1"
-    assert LLMTurnParser.prompt_id == "parser.v1"
+def test_prompt_id_is_pinned_v2():
+    assert PARSER_PROMPT_ID == "parser.v2"
+    assert LLMTurnParser.prompt_id == "parser.v2"
     assert "不要选择 SKU" in PARSER_SYSTEM_PROMPT
     assert "不要写记忆" in PARSER_SYSTEM_PROMPT
     assert "不要判断能否确认" in PARSER_SYSTEM_PROMPT
+    assert '{"acts": [ ... ]}' in PARSER_SYSTEM_PROMPT or '"acts"' in PARSER_SYSTEM_PROMPT
+    assert "禁止与 type 同级摊开" in PARSER_SYSTEM_PROMPT
+
+
+def test_qwen_flat_array_counts_as_model_pass_not_fallback():
+    case = ParserEvaluationCase(
+        id="open-wang-boss",
+        text="开王老板的单",
+        expected_acts=[{"type": "start_order", "slots": {"customer_mention": "王老板"}}],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(
+            default='```json\n[\n  {\n    "type": "start_order",\n    "customer_mention": "王老板"\n  }\n]\n```'
+        )
+    )
+    report = LanguageBenchmark().evaluate(
+        [case], parser, mode="live", model="qwen-probe", capture=capture
+    )
+    row = report.records[0]
+    assert row.fallback is False
+    assert row.parser_name == "llm"
+    assert row.model_pass is True
+    assert row.severity == "pass"
+    assert report.veto is False
 
 
 def test_live_requires_explicit_switch_even_with_key(monkeypatch):
@@ -48,7 +72,7 @@ def test_fake_dataset_is_unscored_and_has_required_report_fields():
     assert report.scored is False
     assert report.mode == "fake"
     assert report.model == "fake"
-    assert report.prompt_id == "parser.v1"
+    assert report.prompt_id == "parser.v2"
     assert report.veto is False
     assert report.stall_oral_pass_rate == 1.0
     blob = report_to_json(report)

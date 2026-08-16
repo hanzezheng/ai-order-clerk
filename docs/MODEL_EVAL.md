@@ -77,7 +77,7 @@ Qwen 与 GPT **分别出报告**，不合成「平均分」。准入是「名单
 RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 ```
 
-产物默认 `docs/eval/runs/<utc>-<model>-parser.v3.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
+产物默认 `docs/eval/runs/<utc>-<model>-parser.v4.json`，不进 git。默认 CI 只跑 Fake / unconfigured。
 
 运行切片：
 
@@ -124,7 +124,7 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 
 | 规则 | 说明 |
 | --- | --- |
-| `prompt_id` | 形如 `parser.v3`。Runtime 与 live 评测必须用同一 id |
+| `prompt_id` | 形如 `parser.v4`。Runtime 与 live 评测必须用同一 id |
 | 钉死内容 | 系统提示全文 + Schema 字段名。改字即升版本 |
 | 禁止写入 | Catalog 名、客户名、价格、SKU 全称、档案默认、草稿 |
 | 变更流程 | 先加 `parser.vN` 文本 → live 评测对比 vN-1 → 达标再切换 Runtime 指针 |
@@ -133,13 +133,15 @@ RUN_LIVE_LLM=1 LLM_API_KEY=… python3 -m app.agent.live_eval
 
 `parser.v1` = 语言规则 + 禁止猜 SKU / 禁止编数字。  
 `parser.v2` = v1 + 强制 `{"acts":[{"type","slots"}]}`，禁止顶层数组、禁止槽位与 type 同级摊开。  
-`parser.v3` = v2 + 列出允许的 `type` 枚举（禁止 `add_item` 等自造名）+ 规格口语必须 `refine_spec`/`spec_mention`。当前 Runtime pin 为 `parser.v3`。仍禁止加商品库。
+`parser.v3` = v2 + 列出允许的 `type` 枚举（禁止 `add_item` 等自造名）+ 规格口语必须 `refine_spec`/`spec_mention`。  
+`parser.v4` = v3 + 量词 uom、「再加N件」为 `set_qty mode=add`、货名指代用 `product_mention`、光杆「那个X」为 `unknown`。当前 Runtime pin 为 `parser.v4`。仍禁止加商品库。
 
 Schema 前的语言层归一（仍不是领域放宽）：
 
 1. 根数组包成 `{"acts": ...}`；已知语言槽抬入 `slots`。
 2. **封闭 type 同义词**（如 `add_item`→`add_line`，`set_spec`→`refine_spec`）。表外自造 type 仍 Schema 失败。禁止把 `done`/`checkout` 映射成 `confirm_order`。
-3. `sku_id` / `customer_id` 等业务字段仍 `extra=forbid`。
+3. **原文可核对的槽位修补**：货名 act 上 `mention`→`product_mention`（`clarify` 除外）；无货名的 `add_line`+qty → `set_qty mode=add`；无数量的「那个X」`set_line`/`add_line` → `unknown`；「两个」补 `uom=个`。不猜 SKU，不编原句没有的数字。
+4. `sku_id` / `customer_id` 等业务字段仍 `extra=forbid`。
 
 L1 匹配：`set_line` 与 `add_line` 在必填槽一致时视为同类（merge 语义仍由 Runner 按 type 区分）。其它 type 必须字面一致。
 

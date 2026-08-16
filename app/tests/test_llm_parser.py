@@ -210,8 +210,8 @@ def test_prompt_has_no_catalog_or_price_knowledge():
     from app.agent.llm_schema import LlmActType
     from app.agent.prompts import PARSER_PROMPT_ID, PARSER_PROMPTS, PARSER_SYSTEM_PROMPT
 
-    assert PARSER_PROMPT_ID == "parser.v3"
-    assert "parser.v2" in PARSER_PROMPTS
+    assert PARSER_PROMPT_ID == "parser.v4"
+    assert "parser.v3" in PARSER_PROMPTS
 
     for needle in (
         "红富士80",
@@ -338,3 +338,90 @@ def test_done_is_not_aliased_to_confirm():
     assert parsed.fallback is True
     assert parsed.acts[0].type == "confirm_order"
     assert parsed.parser_name == "rule"
+
+
+def test_two_ge_fills_uom_without_inventing_sku():
+    parsed = _llm_parser(
+        {"acts": [{"type": "add_line", "slots": {"product_mention": "金边榴莲", "qty": 2}}]}
+    ).parse("加两个金边榴莲")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "add_line"
+    assert parsed.acts[0].slots["qty"] == 2
+    assert parsed.acts[0].slots["uom"] == "个"
+    assert "sku_id" not in parsed.acts[0].slots
+
+
+def test_bare_add_qty_becomes_set_qty_add_mode():
+    parsed = _llm_parser(
+        {"acts": [{"type": "add_line", "slots": {"qty": 20, "uom": "件"}}]}
+    ).parse("再加20件")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "set_qty"
+    assert parsed.acts[0].slots["qty"] == 20
+    assert parsed.acts[0].slots["uom"] == "件"
+    assert parsed.acts[0].slots["mode"] == "add"
+    assert "product_mention" not in parsed.acts[0].slots
+
+
+def test_bare_that_apple_is_unknown_not_set_line():
+    parsed = _llm_parser(
+        {"acts": [{"type": "set_line", "slots": {"product_mention": "那个苹果"}}]}
+    ).parse("那个苹果")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "unknown"
+    assert parsed.acts[0].slots["product_mention"] == "那个苹果"
+    assert "uom" not in parsed.acts[0].slots
+
+
+def test_anaphora_mention_moves_to_product_mention():
+    parsed = _llm_parser(
+        {
+            "acts": [
+                {
+                    "type": "set_qty",
+                    "slots": {"qty": 80, "uom": "件", "mention": "刚才那个"},
+                }
+            ]
+        }
+    ).parse("刚才那个改80件")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "set_qty"
+    assert parsed.acts[0].slots["product_mention"] == "刚才那个"
+    assert "mention" not in parsed.acts[0].slots
+
+
+def test_remove_that_uses_product_mention_not_mention():
+    parsed = _llm_parser(
+        {"acts": [{"type": "remove_line", "slots": {"mention": "那个"}}]}
+    ).parse("那个不要了")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "remove_line"
+    assert parsed.acts[0].slots["product_mention"] == "那个"
+    assert "mention" not in parsed.acts[0].slots
+
+
+def test_clarify_keeps_mention_slot():
+    parsed = _llm_parser(
+        {"acts": [{"type": "clarify", "slots": {"mention": "3号档那个"}}]}
+    ).parse("3号档那个")
+    assert parsed.fallback is False
+    assert parsed.acts[0].type == "clarify"
+    assert parsed.acts[0].slots["mention"] == "3号档那个"
+    assert "product_mention" not in parsed.acts[0].slots
+
+
+def test_give_me_pear_stays_add_line():
+    parsed = _llm_parser(
+        {"acts": [{"type": "add_line", "slots": {"product_mention": "梨"}}]}
+    ).parse("给我来点梨")
+    assert parsed.acts[0].type == "add_line"
+    assert parsed.acts[0].slots["product_mention"] == "梨"
+
+
+def test_anaphoric_add_with_qty_stays_add_line():
+    parsed = _llm_parser(
+        {"acts": [{"type": "add_line", "slots": {"product_mention": "那个红的", "qty": 2, "uom": "件"}}]}
+    ).parse("那个红的再来两件")
+    assert parsed.acts[0].type == "add_line"
+    assert parsed.acts[0].slots["product_mention"] == "那个红的"
+    assert parsed.acts[0].slots["qty"] == 2

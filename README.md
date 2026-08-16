@@ -4,6 +4,11 @@ Voice-first 农批开单员：老板连续自然语言开单，Agent 维护客�
 
 第一阶段只做 Agent 后端核心：不接 ERP，不做前端。
 
+```bash
+python3 -m pip install -e '.[dev]'
+python3 -m pytest -q
+```
+
 ## 文档
 
 | 文件 | 说明 |

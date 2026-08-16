@@ -1,4 +1,4 @@
 {
   "name": "ai-order-clerk",
-  "install": "node -v && python3 --version && git --version"
+  "install": "python3 -m pip install -e '.[dev]'"
 }

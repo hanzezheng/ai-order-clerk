@@ -14,6 +14,7 @@
 | [DOMAIN.md](DOMAIN.md) | 农批业务知识 |
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
+| [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
 | [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
@@ -770,6 +771,7 @@ verdict + session snapshot + changed_line_ids
 8. Sprint 6A：HTTP `POST /v1/sessions` + `POST /v1/sessions/{id}/turns`；Session Timeline（业务事件，禁止聊天记录）；Web Demo Shell（文本模拟麦）；API 契约测试。内核模块保持不动。  
 8b. Sprint 6A-UX：Demo 改为老板可理解的 Voice-first 开单员（按住说话、只读订单、开发模式）。不改内核。  
 8c. Sprint 6A.5 Demo Pack：快捷示例、口播只展示 `reply_text`、自然引导 30 秒剧本、开发模式仅 `?dev=1`、可启动 Demo 端口。不改内核。  
+8d. Sprint 6A.6：行为迁移实验（`docs/VALIDATION.md`）。不写功能代码；6B 以用户行为指标而非技术完成度为门槛。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  

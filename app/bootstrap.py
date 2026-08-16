@@ -8,6 +8,7 @@ from app.database.memory import InMemoryCatalog, InMemoryOrders, InMemorySession
 from app.entity.events import RecordingEventPublisher
 from app.entity.session import SalesSession
 from app.memory.extractor import MemoryExtractor
+from app.memory.evidence import EvidenceStore
 from app.memory.policy import MemoryPolicy
 from app.policy.decision import DecisionPolicy
 from app.response.grounder import ReplyGrounder
@@ -42,6 +43,8 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
     ontology = OntologyService(catalog)
     customers = CustomerService(catalog)
     order_service = OrderService(orders, ontology, events)
+    evidence = EvidenceStore()
+    extractor = MemoryExtractor(evidence=evidence, ontology=ontology)
     policy = DecisionPolicy(ontology)
     runner = SalesSessionRunner(
         parser=parser or RuleTurnParser(),
@@ -51,13 +54,14 @@ def build_app_world(parser: TurnParser | None = None) -> AppWorld:
         resolver=ProductResolver(catalog, catalog.aliases),
         orders=order_service,
         sessions=sessions,
-        memory_extractor=MemoryExtractor(),
+        memory_extractor=extractor,
         memory_policy=MemoryPolicy(),
-        memory_service=MemoryService(catalog.aliases, catalog.prices),
+        memory_service=MemoryService(catalog.aliases, catalog.prices, catalog),
         price_memory=PriceMemoryService(catalog.prices),
         response_generator=TemplateResponseGenerator(),
         reply_grounder=ReplyGrounder(),
         context_loader=ContextLoader(catalog, catalog.prices),
+        events=events,
     )
     intake = TurnIntake(runner=runner, sessions=sessions, events=events, timeline=timeline)
     return AppWorld(

@@ -17,16 +17,14 @@ def test_missing_price_stays_tbd_and_does_not_block():
     assert done.verdict.confirm_ok is True
 
 
-def test_explicit_price_is_recorded_as_quote_not_from_order_confirm():
+def test_explicit_price_is_not_memory_until_confirm():
     runner, _events, catalog = build_world()
     session = new_session()
     runner.handle(session, "开李老板的单")
     result = runner.handle(session, "苹果按3块")
     assert session.draft.lines[0].price.source == "explicit"
     assert session.draft.lines[0].price.unit_price == Decimal("3")
-    quotes = [p for p in catalog.prices.snapshot() if p.price_type == "last_quote"]
-    assert quotes
-    assert quotes[0].unit_price == Decimal("3")
+    assert catalog.prices.snapshot() == []
     assert "price_explicit" in result.verdict.reasons
 
 

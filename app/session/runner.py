@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from app.entity.catalog import CustomerProfile, ProductMention
+from app.entity.events import RecordingEventPublisher
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import Quantity
 from app.entity.price import PriceQuote
@@ -44,6 +45,7 @@ class SalesSessionRunner:
         response_generator: TemplateResponseGenerator | None = None,
         reply_grounder: ReplyGrounder | None = None,
         context_loader: ContextLoader | None = None,
+        events: RecordingEventPublisher | None = None,
     ) -> None:
         self._parser = parser
         self._policy = policy
@@ -59,6 +61,7 @@ class SalesSessionRunner:
         self._response = response_generator or TemplateResponseGenerator()
         self._grounder = reply_grounder or ReplyGrounder()
         self._context_loader = context_loader
+        self._events = events
 
     def handle(self, session: SalesSession, text: str, *, expect_more: bool = False) -> TurnResult:
         session.turn_index += 1
@@ -84,7 +87,6 @@ class SalesSessionRunner:
             reasons.extend(last_verdict.reasons)
             if last_verdict.allow_execute:
                 executed.append(act.type)
-                self._remember(session, act)
                 if act.type in {"set_line", "add_line", "set_qty", "set_price", "refine_spec"}:
                     if session.focus_line_id and session.focus_line_id not in changed_line_ids:
                         changed_line_ids.append(session.focus_line_id)
@@ -130,6 +132,7 @@ class SalesSessionRunner:
             reply_text = self._response.generate(plan)
             fallback_reason = "grounding_violation"
         self._sessions.save(session)
+        self._commit_memory(session)
         return TurnResult(
             reply_text=reply_text,
             session=session,
@@ -141,10 +144,9 @@ class SalesSessionRunner:
             reply_plan=plan,
         )
 
-    def _remember(self, session: SalesSession, act: SpeechAct) -> None:
-        if act.type == "confirm_order":
-            return
-        for candidate in self._memory_extractor.extract(act, session):
+    def _commit_memory(self, session: SalesSession) -> None:
+        events = list(getattr(self._events, "events", []) or [])
+        for candidate in self._memory_extractor.extract_from_events(session, events):
             decision = self._memory_policy.decide(candidate)
             self._memory_service.apply(candidate, decision)
 

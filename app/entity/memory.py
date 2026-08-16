@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 PriceMemoryType = Literal["last_quote", "last_deal", "market_today", "customer_special"]
 MemoryKind = Literal["product_alias", "price", "product_default"]
+MemoryStatus = Literal["pending", "active", "retired"]
 
 
 class ProductAliasMemory(BaseModel):
@@ -18,6 +19,8 @@ class ProductAliasMemory(BaseModel):
     confidence: float = 1.0
     source: str = "utterance"
     updated_at: datetime | None = None
+    status: MemoryStatus = "pending"
+    last_confirmed_at: datetime | None = None
 
 
 class PriceMemoryRecord(BaseModel):
@@ -29,6 +32,8 @@ class PriceMemoryRecord(BaseModel):
     valid_until: datetime | None = None
     valid_from: datetime | None = None
     confidence: float = 1.0
+    status: MemoryStatus = "pending"
+    last_confirmed_at: datetime | None = None
 
 
 class MemoryCandidate(BaseModel):
@@ -38,3 +43,10 @@ class MemoryCandidate(BaseModel):
     alias: ProductAliasMemory | None = None
     price: PriceMemoryRecord | None = None
     source_act: str = ""
+    source_event: str = ""
+    customer_id: UUID | None = None
+    node_id: UUID | None = None
+    sku_id: UUID | None = None
+    evidence_count: int = 0
+    status: MemoryStatus = "pending"
+    last_confirmed_at: datetime | None = None

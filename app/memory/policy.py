@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.entity.events import ORDER_CONFIRMED
 from app.entity.memory import MemoryCandidate
+from app.memory.evidence import PRODUCT_DEFAULT_THRESHOLD
 
 
 @dataclass(frozen=True)
@@ -12,25 +14,22 @@ class MemoryDecision:
 
 
 class MemoryPolicy:
-    """长期记忆闸门。订单确认、临时规格、数量一律不写。"""
+    """长期记忆闸门。只审核确认事件候选；LLM 不得调用本闸门改结论。"""
 
     def decide(self, candidate: MemoryCandidate) -> MemoryDecision:
-        if candidate.source_act == "confirm_order":
-            return MemoryDecision(False, "order_confirm_does_not_write_memory")
+        if candidate.source_event != ORDER_CONFIRMED:
+            return MemoryDecision(False, "memory_only_from_confirm_event")
         if candidate.kind == "product_default":
-            return MemoryDecision(False, "temp_spec_does_not_write_profile")
-        if candidate.kind == "product_alias":
-            alias = candidate.alias
-            if alias is None or candidate.confidence < 0.8:
-                return MemoryDecision(False, "alias_confidence_too_low")
-            return MemoryDecision(True, "alias_ok")
+            if candidate.customer_id is None or candidate.node_id is None or candidate.sku_id is None:
+                return MemoryDecision(False, "product_default_incomplete")
+            if candidate.evidence_count < PRODUCT_DEFAULT_THRESHOLD:
+                return MemoryDecision(False, "evidence_below_threshold")
+            return MemoryDecision(True, "product_default_threshold_met")
         if candidate.kind == "price" and candidate.price is not None:
             price = candidate.price
             if price.customer_id is None:
                 return MemoryDecision(False, "unbound_customer")
-            if price.price_type != "last_quote":
+            if price.price_type != "last_deal":
                 return MemoryDecision(False, "price_type_not_writable")
-            if candidate.source_act != "set_price":
-                return MemoryDecision(False, "price_only_from_set_price")
-            return MemoryDecision(True, "price_quote_ok")
+            return MemoryDecision(True, "last_deal_from_confirm")
         return MemoryDecision(False, "unknown_candidate")

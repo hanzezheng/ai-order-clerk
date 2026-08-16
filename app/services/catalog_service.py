@@ -89,6 +89,9 @@ class OntologyService:
         right = self._variety_id(b)
         return left is not None and left == right
 
+    def variety_id(self, node: ProductNode) -> UUID | None:
+        return self._variety_id(node)
+
     def _variety_id(self, node: ProductNode) -> UUID | None:
         if node.level == "variety":
             return node.id

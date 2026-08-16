@@ -7,7 +7,7 @@ alwaysApply: true
 
 农批开单不是零售点餐。禁止用更简单的错误模型换速度。
 
-必须保留（见 DESIGN.md）：
+必须保留（见 `docs/AI_EMPLOYEE_ARCHITECTURE.md` 与 DESIGN.md）：
 
 - 商品本体树：`category → variety → cultivar → sku`，口语可打在任意层
 - 开单单位与计价单位分离；无换算因子不得估算件重

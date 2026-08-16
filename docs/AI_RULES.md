@@ -32,4 +32,4 @@ Agent 不得否决 `DecisionVerdict`。
 ## 出错时
 
 听不清 → `unknown`，请老板再报，不猜测数量。  
-设计与代码冲突 → 停手，先改 `docs/DESIGN.md`。
+设计与代码冲突 → 停手，先改 `docs/AI_EMPLOYEE_ARCHITECTURE.md`（分层/权限）或 `docs/DESIGN.md`（开单细则）。

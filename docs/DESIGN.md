@@ -3,13 +3,15 @@
 > 范围：Agent 后端核心 + V1 最小开单壳。不接 ERP，禁止做成 ERP 前端 App。
 > 交互：按真实档口**连续语音开单**设计——30 秒内连报多品、中途改口、同名客户、层级歧义、缺价不打断。
 > V1 可不接麦克风/ASR，用文本模拟语音输入；API 与图必须按语音连报契约实现（一条文本可含多动作；`expect_more` 时禁止打断追问）。
+> 最高架构约束：[AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md)。本文件是农批开单员产品设计细则。
 
 仓库根目录即项目根目录（GitHub 仓库已名为 `ai-order-clerk`），不再套一层同名文件夹。
 
-配套文档（本文件仍是最高设计依据）：
+配套文档：
 
 | 文件 | 用途 |
 | --- | --- |
+| [AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md) | **最高架构约束**：AI Employee Runtime 分层、冻结边界、ERP 经 Outbox、评审六问、Sprint 开场模板 |
 | [ROADMAP.md](ROADMAP.md) | 产品阶段 |
 | [DOMAIN.md](DOMAIN.md) | 农批业务知识 |
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
@@ -18,7 +20,7 @@
 | [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) | V0.3C 农批语言分层评测、商品理解缺口、复杂订单金脚本、V0.4 准入 |
 | [MODEL_EVAL.md](MODEL_EVAL.md) | V0.3D 真模型评测：接入、运行、Fake 对照、Prompt 版本、指标与失败记录 |
 | [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md) | V0.4 Voice Adapter：架构、ASR/TTS 边界、PTT 状态机、turns 字段策略、Text/Voice 等价、真机脚本 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---

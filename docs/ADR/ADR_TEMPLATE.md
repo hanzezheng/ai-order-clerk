@@ -1,6 +1,6 @@
 # ADR 模板
 
-复制本文件为 `ADR-00N-short-name.md`。与 `docs/DESIGN.md` 冲突时：先改 DESIGN，再改或废止本 ADR。
+复制本文件为 `ADR-00N-short-name.md`。与 `docs/AI_EMPLOYEE_ARCHITECTURE.md` 或 `docs/DESIGN.md` 冲突时：先改文档，再改或废止本 ADR。
 
 # ADR编号
 

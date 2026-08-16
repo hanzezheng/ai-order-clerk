@@ -15,7 +15,7 @@
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
 | [AI_DEVELOPMENT_GUIDE.md](AI_DEVELOPMENT_GUIDE.md) | Cursor Master Prompt：正式开发入口 |
 | [VALIDATION.md](VALIDATION.md) | 行为迁移实验：观察模板、Demo 剧本、进入 6B 的行为门槛 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md) |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -569,6 +569,14 @@ category     水果 / 蔬菜 / …
 - `product_uoms.factor`：只用于计价换算，不在对话里把 60 件改写成斤，除非用户用斤报。
 - 用户说的单位与 default 冲突：以**本句 explicit** 为准，Extractor 才考虑更新 `preferred_uom`。
 
+### 6.4 ProductMention Candidate（Sprint 8A，不改 Ontology）
+
+Resolver 零命中或未到 sku：**不能猜 SKU**，也不能创建 candidate SKU / 新节点。
+
+只把本行 `ProductMention` 标为 `status=candidate`（raw + unmatched），并记入 Session 的 mention candidate 列表。特指未知同样只记 mention，不改 Catalog。
+
+行未到 sku 时 `confirm_gate` 仍拒绝（闸门冻结）。若后续 `refine_spec` 命中**已有**本体并确认，才走现有 Evidence → MemoryPolicy（写入路径不变）。本阶段不从口语长出 Ontology。
+
 ---
 
 ## 7. Customer Profile
@@ -599,6 +607,25 @@ category     水果 / 蔬菜 / …
 本单行落地 SKU ≠ 档案该品种默认（含下句否定默认）→ **Session 抑制**该品种 `product_default`：本 Session 内 `fill_sku` 不再套该 default。Session 抑制属于**当前订单状态**，只影响本单，**不写**长期记忆。
 
 长期默认的改写仍走确认证据（见 §10）：修正事件不得直接写 `product_default`。
+
+### 7.4 客户冷启动（Sprint 8A）
+
+客户身份是实体识别，不是 Memory。零命中不得直接失败，也不得无区分事实就建档。
+
+```text
+unknown → candidate → observed → trusted
+```
+
+| 状态 | 何时 | 再遇「开赵老板」 |
+| --- | --- | --- |
+| unknown | lookup 零命中 | `session_block`：还没有这位，问档口 |
+| candidate | 已有 `stall_no`（或电话尾号）并写入客户实体，尚无确认单 | 仍须核档口，禁止静默绑定 |
+| observed | 第一张 `order.confirmed` | 别名可直接绑定 |
+| trusted | 确认单数 ≥ 3 | 同 observed；同名仍走消歧 |
+
+必须有 `stall_no` 或等价区分事实（电话尾号）才 `create_candidate`。只凭称呼不建实体。同称呼+同档口复用，禁止插入第二条。同名已存在的种子客户（两个王老板）仍只走 `customer_ambiguous`，不走创建。
+
+客户实体与空 Profile 由 CustomerService 写入 Catalog。`confirm_gate` / OrderService / Memory 写入路径不变：确认前必须已有 `customer.id`；别名挂在客户实体上供 lookup，不经 Extractor 改 Memory。确认后 Runner 只把客户从 candidate 升为 observed/trusted（Catalog 状态，不是第二套记忆）。
 
 ---
 
@@ -801,6 +828,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8d. Sprint 6A.6：行为迁移实验（`docs/VALIDATION.md`）。  
 8e. Sprint 6B Learning Memory Loop：确认事件 → Extractor → Evidence → MemoryPolicy → Storage。LLM 不写记忆。不上 ASR/TTS。合并节点 `v0.1-learning-agent`。  
 8f. Sprint 7 Adaptive Memory：Session 级默认抑制（只影响本单）；确认后 `memory.preference_adjusted`；Evidence 负向 delta + 正负计数；修正事件不写 `product_default`。冻结 Parser / Resolver / `Policy.confirm_gate` / OrderService / Response。  
+8g. Sprint 8A 客户冷启动：未知客户 → 档口区分事实 → candidate 实体；确认后 observed/trusted。商品仅 ProductMention candidate，不创建 SKU、不改 Ontology。冻结 Parser / Resolver 主流程 / `confirm_gate` / OrderService / Memory 写入路径。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -952,3 +980,9 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
 只改：Session 抑制、`memory.preference_adjusted`、Evidence 正负计数、MemoryPolicy 修正规则、`fill_sku` 用档。
 
 冻结：Parser、Resolver 主流程、`Policy.confirm_gate`、OrderService、Response。不做 ASR / TTS / ERP / 新 Agent。
+
+### 14.7 客户冷启动（Sprint 8A）
+
+优先：未知客户 + 档口区分事实 → Catalog candidate。商品只记 ProductMention candidate，不创建 SKU、不改 Ontology。
+
+冻结：Parser、Resolver 主流程、`confirm_gate`、OrderService、Memory 写入路径。ReplyPlan 允许新增 `customer_unknown` 问句 code；Grounder 算法不变。

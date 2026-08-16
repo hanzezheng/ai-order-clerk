@@ -8,6 +8,8 @@ from app.entity.session import SalesSession
 from app.memory.extractor import MemoryExtractor
 from app.memory.policy import MemoryPolicy
 from app.policy.decision import DecisionPolicy
+from app.response.grounder import ReplyGrounder
+from app.response.template import TemplateResponseGenerator
 from app.services.catalog_service import CustomerService, OntologyService
 from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
@@ -37,6 +39,8 @@ def build_world(parser: TurnParser | None = None) -> tuple[SalesSessionRunner, R
         memory_policy=MemoryPolicy(),
         memory_service=MemoryService(catalog.aliases, catalog.prices),
         price_memory=PriceMemoryService(catalog.prices),
+        response_generator=TemplateResponseGenerator(),
+        reply_grounder=ReplyGrounder(),
     )
     return runner, events, catalog
 

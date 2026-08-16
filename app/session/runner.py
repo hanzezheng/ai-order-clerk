@@ -12,6 +12,9 @@ from app.agent.parser import TurnParser
 from app.memory.extractor import MemoryExtractor
 from app.memory.policy import MemoryPolicy
 from app.policy.decision import DecisionPolicy
+from app.response.grounder import ReplyGrounder
+from app.response.planner import build_reply_plan
+from app.response.template import TemplateResponseGenerator
 from app.services.catalog_service import CustomerService, OntologyService
 from app.services.memory_service import MemoryService
 from app.services.order_service import OrderService
@@ -37,6 +40,8 @@ class SalesSessionRunner:
         memory_policy: MemoryPolicy,
         memory_service: MemoryService,
         price_memory: PriceMemoryService,
+        response_generator: TemplateResponseGenerator | None = None,
+        reply_grounder: ReplyGrounder | None = None,
     ) -> None:
         self._parser = parser
         self._policy = policy
@@ -49,6 +54,8 @@ class SalesSessionRunner:
         self._memory_policy = memory_policy
         self._memory_service = memory_service
         self._price_memory = price_memory
+        self._response = response_generator or TemplateResponseGenerator()
+        self._grounder = reply_grounder or ReplyGrounder()
 
     def handle(self, session: SalesSession, text: str, *, expect_more: bool = False) -> TurnResult:
         session.turn_index += 1
@@ -65,6 +72,7 @@ class SalesSessionRunner:
         all_issues: list[Issue] = []
         reasons: list[str] = []
         executed: list[str] = []
+        changed_line_ids: list = []
         last_verdict = DecisionVerdict()
 
         for act in acts:
@@ -74,6 +82,9 @@ class SalesSessionRunner:
             if last_verdict.allow_execute:
                 executed.append(act.type)
                 self._remember(session, act)
+                if act.type in {"set_line", "add_line", "set_qty", "set_price", "refine_spec"}:
+                    if session.focus_line_id and session.focus_line_id not in changed_line_ids:
+                        changed_line_ids.append(session.focus_line_id)
 
         confirm_ok = False
         if any(a.type == "confirm_order" for a in acts):
@@ -85,9 +96,14 @@ class SalesSessionRunner:
                 executed.append("confirm_order")
             reasons.extend(gate.reasons)
 
-        reply_mode = "ack" if expect_more else ("ask" if any(i.block_level == "session_block" for i in all_issues) else "recap")
-        if any(i.block_level == "session_block" and i.ask_when == "now" for i in all_issues) and not expect_more:
+        if any(i.block_level == "session_block" for i in all_issues):
             reply_mode = "ask"
+        elif session.draft.status == "confirmed":
+            reply_mode = "recap"
+        elif expect_more:
+            reply_mode = "ack"
+        else:
+            reply_mode = "recap"
 
         verdict = DecisionVerdict(
             allow_execute=True,
@@ -97,13 +113,23 @@ class SalesSessionRunner:
             reply_mode=reply_mode,
         )
         session.deferred_issues = [i for i in all_issues if i.ask_when == "idle"]
+        plan = build_reply_plan(session, verdict, changed_line_ids=changed_line_ids)
+        reply_text = self._response.generate(plan)
+        grounded = self._grounder.check(reply_text, plan)
+        fallback_reason = None
+        if not grounded.ok:
+            reply_text = self._response.generate(plan)
+            fallback_reason = "grounding_violation"
         self._sessions.save(session)
         return TurnResult(
-            reply_text=self._reply(session, verdict, expect_more=expect_more),
+            reply_text=reply_text,
             session=session,
             verdict=verdict,
             acts=acts,
             commands_executed=executed,
+            generator_name="template",
+            reply_fallback_reason=fallback_reason,
+            reply_plan=plan,
         )
 
     def _remember(self, session: SalesSession, act: SpeechAct) -> None:
@@ -249,33 +275,3 @@ class SalesSessionRunner:
                 if line.line_id == session.focus_line_id:
                     return line
         return session.draft.lines[-1] if session.draft.lines else None
-
-    def _reply(self, session: SalesSession, verdict: DecisionVerdict, *, expect_more: bool) -> str:
-        blocks = [i for i in verdict.issues if i.block_level == "session_block"]
-        if blocks and blocks[0].code == "customer_ambiguous":
-            names = "、".join(o.get("name", "") for o in blocks[0].options)
-            return f"有多家都叫这个，请问是哪一家？{names}"
-        if session.draft.status == "confirmed":
-            parts = [f"{self._line_name(ln)} {ln.qty.value}{ln.qty.uom}（价未定）" if ln.price.source == "tbd" else f"{self._line_name(ln)} {ln.qty.value}{ln.qty.uom}" for ln in session.draft.lines]
-            who = session.draft.customer.name if session.draft.customer else ""
-            return f"{who} 单已确认：" + "，".join(parts)
-        if expect_more:
-            return "记下了：" + "，".join(f"{self._line_name(ln)}{ln.qty.value}{ln.qty.uom}" for ln in session.draft.lines)
-        parts = []
-        for ln in session.draft.lines:
-            extra = ""
-            if ln.mention.filled_from == "profile" and ln.mention.resolved_sku:
-                extra = f"（按档案{ln.mention.resolved_sku.name}）"
-            if ln.price.source == "explicit" and ln.price.unit_price is not None:
-                price = f"，{ln.price.unit_price}{ln.price.price_uom or '块'}"
-            else:
-                price = "，价未定" if ln.price.source == "tbd" else ""
-            parts.append(f"{self._line_name(ln)} {ln.qty.value}{ln.qty.uom}{extra}{price}")
-        return "当前草稿：" + "；".join(parts) if parts else "还没有货"
-
-    def _line_name(self, line) -> str:
-        if line.mention.resolved_sku:
-            return line.mention.resolved_sku.name
-        if line.mention.matched_node:
-            return line.mention.matched_node.name
-        return line.mention.raw

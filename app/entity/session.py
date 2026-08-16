@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from app.entity.catalog import CustomerRef
 from app.entity.issue import DecisionVerdict, Issue
 from app.entity.order import DraftOrder, OrderLine
+from app.entity.reply import ReplyPlan
 from app.entity.speech import SpeechAct
 
 
@@ -28,3 +29,6 @@ class TurnResult(BaseModel):
     verdict: DecisionVerdict
     acts: list[SpeechAct] = Field(default_factory=list)
     commands_executed: list[str] = Field(default_factory=list)
+    generator_name: str = "template"
+    reply_fallback_reason: str | None = None
+    reply_plan: ReplyPlan | None = None

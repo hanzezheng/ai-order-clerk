@@ -24,8 +24,9 @@
 
 ## 与 Policy 的关系
 
-LLM：理解语言。  
+LLM：理解语言（SpeechAct）。  
 Policy：是否询问、是否自动执行、是否确认。  
+Response：只把 `ReplyPlan` 说成口播；不得否决 `DecisionVerdict`，不得读业务库补事实。  
 Agent 不得否决 `DecisionVerdict`。
 
 ## 出错时

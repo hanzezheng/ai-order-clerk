@@ -110,7 +110,8 @@ api  →  agent  →  tools  →  services  →  models/database
               ↘  policy          （纯函数，只吃结构化快照）
               ↘  session
               ↘  memory/extractor → memory_service / price_memory_service
-entity  ←  被 agent / policy / services / api 共用
+              ↘  response        （ReplyPlan → 口播；禁止改裁决）
+entity  ←  被 agent / policy / services / api / response 共用
 ```
 
 硬约束：
@@ -120,6 +121,7 @@ entity  ←  被 agent / policy / services / api 共用
 | `agent/` | 读 entity、调 tools、维护 GraphState | import models/database；自己决定能否确认 |
 | `policy/` | 对 SpeechAct[] + 解析结果 + Profile + PriceMemory 做裁决 | 调 LLM、写库；把缺价当阻断 |
 | `memory/extractor` | 产出 MemoryCandidate | 直接落库 |
+| `response/` | 读 `ReplyPlan`，拼出口播 | 读 Catalog/PriceMemory/Session；改 `DecisionVerdict`；写 Memory/草稿 |
 | `services/` | ORM、事务、ERP Port | 调 LLM、绕过 policy 的确认闸门 |
 | `api/` | 启会话、投递用户话 | 自然语言直接进 SQL |
 
@@ -131,9 +133,10 @@ AI 不操作数据库：图节点只发 `ServiceCommand`。能否澄清、能否
 - **product resolver**：`product_mention` 生文本 → 本体节点。只识别，不写 Memory，不套档案默认。
 - **customer profile**：熟客缺槽默认值；由 Policy 决定是否填充。
 - **price memory**：带有效期的报价/成交；禁止静默套 `last_deal` 或过期价。
-- **policy**：槽位优先级、澄清阈值、确认闸门。
+- **policy**：槽位优先级、澄清阈值、确认闸门。只决定 `reply_mode` / Issue，不写台词。
 - **session**：本单工作记忆。
 - **memory**：Extract → MemoryPolicy → MemoryService。禁止订单确认直接写长期记忆。
+- **response**：`snapshot + verdict → ReplyPlan → TemplateResponseGenerator → ReplyGrounder`。只表达，不裁决。`reply_scope=changed_only` 用于连报 ack，禁止把全单再念一遍。Sprint 4A 不做 LLM 回复。
 
 `TurnParser`（`parse(text) -> TurnParse`）是唯一语言入口。`RuleTurnParser` 与 `LLMTurnParser` 可互换。LLM 只抽 SpeechAct；失败必须 fallback 到规则 Parser，并保留 `parser_name` / `fallback` / `fallback_reason`。LLM 输出 Schema 经转换层才变成领域 `SpeechAct`。禁止依赖 LLM 才能开单。
 
@@ -195,7 +198,17 @@ SessionSnapshot    session_id, status, draft, profile_digest?,
                    deferred_issues[],
                    pending_session_blocks[],  # 仅同名客户等会话级
                    turn_index
-AgentTurnResult    reply_text, snapshot, verdict, commands_executed[], memories_applied[]
+AgentTurnResult    reply_text, snapshot, verdict, commands_executed[], memories_applied[],
+                   generator_name, reply_plan?
+
+# 表达层（Sprint 4A）
+SourceRef          kind: qty | price | sku | customer | stall | uom,
+                   text, origin: draft_line | customer_ref | issue_option | verdict,
+                   subject_id?
+ReplyLineFact      line_id, label, qty_text, uom, price_text?, price_tbd, from_profile, sku_text?
+ReplyQuestion      code, option_labels[]
+ReplyPlan          mode, reply_scope: changed_only | full, confirmed,
+                   customer_label?, lines[], question?, source_refs[], must_say[]
 ```
 
 `line_status`：`unresolved | pending_clarify | ready | price_tbd | confirmed`。  
@@ -424,7 +437,7 @@ flowchart TD
 | `batch_resolve` | 本回合所有品名/客户一次检索 | N 次串行 LLM |
 | `evaluate_policy` | 每 act 裁决；`expect_more` 时 ask_when=idle 的问题入 deferred | 因缺价/规格打断后续加行 |
 | `execute_services` | 同一事务按序 apply | 半句失败回滚已成功的**前面**行（应部分成功：已清行保留，失败 act 记 issue） |
-| `compose_reply` | expect_more→短 ack；否则 recap；session_block 才立刻问 | 连报中途问价、问规格 |
+| `compose_reply` | 已聚合的 verdict + 本回合变更行 → ReplyPlan → 模板口播 → 白名单 Grounder | 连报念全单；问价问规格；读档案补 SKU 名；否决 confirm_ok |
 
 部分成功：苹果、梨已写入，榴莲歧义 → 两行 ready/tbd，榴莲 line_hold，回复 ack 不提问（若 expect_more）。
 
@@ -637,10 +650,30 @@ Service 层 `confirm_draft` 必须再执行同一闸门。图节点 verdict 过�
 
 ### 9.4 回复义务
 
-- `reply_mode=ack`（连报中）：只报已收行短列表，不问规格、不问价。  
-- `reply_mode=recap`：用了档案默认必须说全称；TBD 必须说「价未定」；改口说新数量。  
-- `reply_mode=ask`：仅 session_block，或 idle/好了时的 line_hold。一次回复最多一个会话级问题；行级问题可打包成一张清单，禁止连环追问打断下一句报货。  
+Policy 决定 `reply_mode`。表达层不得改 mode。
+
+- `reply_mode=ack`（连报中）：`reply_scope=changed_only`，只报**本回合**落地行，不问规格、不问价、不念全单。  
+- `reply_mode=recap`：`reply_scope=full`。用了档案默认必须说 SKU 全称；TBD 必须说「价未定」；改口说新数量。  
+- `reply_mode=ask`：仅 session_block，或 idle/好了时的 line_hold。一次回复最多一个会话级问题。  
+- `session_block`（同名客户）优先于 `expect_more` 的 ack：必须立刻问哪一家。未消歧不得套档案，回复不得泄露 Profile 默认 SKU、未授权价格。  
 - 拒绝编造库存、到货日、折扣、价格数字。
+
+### 9.5 Response Layer 与 Grounding
+
+```text
+verdict + session snapshot + changed_line_ids
+  → ReplyPlan（含 source_refs）
+  → TemplateResponseGenerator.generate(plan)
+  → ReplyGrounder.check(text, plan)
+  → reply_text
+```
+
+- Generator **只读 ReplyPlan**，禁止访问 Catalog、Profile、PriceMemory、Session。  
+- `source_refs` 列出允许出现在回复中的数字、价格、SKU 名、客户名、档口号、单位。  
+- Sprint 4A Grounder 为**白名单**：从回复中按最长优先删去 `source_refs.text` 与固定虚词；若仍有剩余字符则非法。不做 NLP。  
+- `TemplateResponseGenerator` 只拼接 Plan 字段与固定虚词（记下了、当前草稿、价未定、按档案、单已确认、请问是哪一家、还没有货）。  
+- 接地失败：回退到同样只含 Plan 字段的安全拼接，记下 `reply_fallback_reason=grounding_violation`。  
+- 4A 不实现 `LLMResponseGenerator`。
 
 ---
 
@@ -677,10 +710,12 @@ Service 层 `confirm_draft` 必须再执行同一闸门。图节点 verdict 过�
 2. 无 LLM：一段话规则切分或多 act 夹具 → OrderService 顺序合行/改口  
 3. Policy 单测：连报部分成功、expect_more 不问价、同名客户、层级 hold、缺价可确认  
 4. Profile / PriceMemory  
-5. API turns（utterance_id / expect_more）  
-6. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
-7. Extractor 闸门  
-8. outbox 事件 + 各 Port NoOp  
+5. TurnParser 可替换 + LLM Parser fallback  
+6. Response Layer：ReplyPlan + 模板 Generator + 白名单 Grounder + 对话集  
+7. API turns（utterance_id / expect_more）  
+8. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
+9. Extractor 闸门  
+10. outbox 事件 + 各 Port NoOp  
 
 ---
 

@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "purpose": "conversation_reply_obligations",
+  "notes": "多回合口播义务。禁止期望编造价格或未消歧时的档案 SKU。",
+  "cases": [
+    {
+      "id": "burst-ack-no-price-question",
+      "turns": [
+        {"user": "开李老板的单", "expect_more": false},
+        {
+          "user": "苹果60件",
+          "expect_more": true,
+          "assert": {
+            "reply_mode": "ack",
+            "reply_scope": "changed_only",
+            "must_include": ["苹果", "60"],
+            "must_not_ask": ["price", "sku"]
+          }
+        },
+        {
+          "user": "梨60件",
+          "expect_more": true,
+          "assert": {
+            "reply_mode": "ack",
+            "reply_scope": "changed_only",
+            "must_include": ["梨"],
+            "must_not_include": ["苹果"],
+            "must_not_ask": ["price"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "homonym-must-ask",
+      "turns": [
+        {
+          "user": "开王老板的单",
+          "expect_more": false,
+          "assert": {
+            "reply_mode": "ask",
+            "must_include": ["王强水果店", "王记水果店"],
+            "must_not_include": ["红富士"],
+            "question_code": "customer_ambiguous"
+          }
+        }
+      ]
+    },
+    {
+      "id": "homonym-must-not-leak-profile",
+      "turns": [
+        {"user": "开王老板的单", "expect_more": false},
+        {
+          "user": "苹果60件",
+          "expect_more": false,
+          "assert": {
+            "reply_mode": "ask",
+            "must_not_include": ["红富士", "红富士80", "4.8", "烟台"],
+            "must_include": ["王强水果店", "王记水果店"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wang-qiang-after-disambiguation",
+      "turns": [
+        {"user": "开王老板的单", "expect_more": false},
+        {"user": "王强水果店", "expect_more": false},
+        {
+          "user": "苹果60件",
+          "expect_more": false,
+          "assert": {
+            "reply_mode": "recap",
+            "must_include": ["红富士"],
+            "must_not_include": ["王记水果店"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wang-ji-apple-hangs-then-pear",
+      "turns": [
+        {"user": "开王老板的单", "expect_more": false},
+        {"user": "王记水果店", "expect_more": false},
+        {"user": "苹果60件", "expect_more": true, "assert": {"reply_mode": "ack", "must_not_ask": ["price"]}},
+        {
+          "user": "梨60件",
+          "expect_more": false,
+          "assert": {"line_count": 2, "must_not_ask": ["price"]}
+        }
+      ]
+    },
+    {
+      "id": "li-profile-default",
+      "turns": [
+        {"user": "开李老板的单", "expect_more": false},
+        {
+          "user": "苹果60件",
+          "expect_more": false,
+          "assert": {
+            "reply_mode": "recap",
+            "must_include": ["红富士", "价未定"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tbd-can-confirm",
+      "turns": [
+        {"user": "开李老板的单", "expect_more": false},
+        {"user": "苹果60件", "expect_more": false},
+        {
+          "user": "好了",
+          "expect_more": false,
+          "assert": {
+            "confirm_ok": true,
+            "must_include": ["价未定"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "explicit-price-three",
+      "turns": [
+        {"user": "开李老板的单", "expect_more": false},
+        {
+          "user": "苹果按3块",
+          "expect_more": false,
+          "assert": {
+            "must_include": ["3"],
+            "must_not_include": ["4.8"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "anaphora-no-sku",
+      "turns": [
+        {"user": "开李老板的单", "expect_more": false},
+        {
+          "user": "还是以前那个",
+          "expect_more": false,
+          "assert": {
+            "must_not_include": ["红富士80果一级烟台箱装"]
+          }
+        }
+      ]
+    }
+  ]
+}

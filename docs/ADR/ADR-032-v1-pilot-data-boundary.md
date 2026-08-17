@@ -9,7 +9,7 @@
 
 观察表已规定失败可记「数据不足」。若不划清目录边界，试班容易做成客户管理、自动建档、或让模型猜人猜货。
 
-边界：[V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](../V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)、[ADR-009](ADR-009-memory-from-confirm-events.md)。
+边界：[V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](../V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。访问：[V1_SALES_CLERK_PILOT_DATA_ACCESS.md](../V1_SALES_CLERK_PILOT_DATA_ACCESS.md)、[ADR-033](ADR-033-v1-pilot-data-access.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)、[ADR-009](ADR-009-memory-from-confirm-events.md)。
 
 ## 问题
 

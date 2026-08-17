@@ -6,7 +6,7 @@
 >
 > **不是开发 CRM。不是开发客户管理。不是扩展 ERP。不加功能。不新增 Agent。不引入库存 / 支付 / 财务。不改 Runtime / Confirm Gate。**
 >
-> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。观察表见 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)。决策见 [ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)。
+> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。观察表见 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)。访问边界见 [V1_SALES_CLERK_PILOT_DATA_ACCESS.md](V1_SALES_CLERK_PILOT_DATA_ACCESS.md)。决策见 [ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)。
 
 检查清单回答：能不能去摊前试。观察表回答：试的时候记什么。本文回答：**摊前要准备哪些企业事实，缺了怎么办。**
 

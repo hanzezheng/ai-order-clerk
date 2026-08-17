@@ -43,5 +43,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V1_SALES_CLERK_PILOT_CHECKLIST.md](docs/V1_SALES_CLERK_PILOT_CHECKLIST.md) | 开单员 V1 Pilot 检查（可靠性、异常、能否进档口） |
 | [docs/V1_SALES_CLERK_PILOT_OBSERVATION.md](docs/V1_SALES_CLERK_PILOT_OBSERVATION.md) | 开单员 V1 Pilot 观察（每日记录、失败案例、结束判断） |
 | [docs/V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](docs/V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md) | 开单员 V1 Pilot 数据边界（企业事实切片、缺数据问老板） |
+| [docs/V1_SALES_CLERK_PILOT_DATA_ACCESS.md](docs/V1_SALES_CLERK_PILOT_DATA_ACCESS.md) | 开单员 V1 Pilot 数据访问（Adapter 投影进 Runtime，不直查 ERP） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

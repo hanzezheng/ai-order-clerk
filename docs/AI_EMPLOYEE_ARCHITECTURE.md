@@ -200,6 +200,8 @@ Read：只问 `runtime_order_id` / `runtime_customer_id`；只投影 `pending | 
 
 V0.5 已增加 ERPNext Write Adapter；V0.6 只设计 Read Adapter。开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 
+架构冻结评审（不写代码）：[RUNTIME_FREEZE_REVIEW.md](RUNTIME_FREEZE_REVIEW.md)、[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)。现网是可复用流水线，不是可复用平台；不替换为 LangGraph / CrewAI / AutoGen / Agents SDK。
+
 ---
 
 ## 7. 后续所有设计评审必须回答

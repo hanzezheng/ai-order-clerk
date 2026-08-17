@@ -6,7 +6,7 @@
 >
 > **不写代码。不新增 Agent。不引入库存 / 支付 / 财务。不扩展 ERP 业务逻辑。不把 ERP 变成 AI 决策层。**
 >
-> 岗位规格见 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)。本文是 V1 **产品化**：老板一天怎么用这个员工。决策见 [ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)。
+> 岗位规格见 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)。本文是 V1 **产品化**：老板一天怎么用这个员工。决策见 [ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)。工作台原型见 [V1_SALES_CLERK_WORKBENCH.md](V1_SALES_CLERK_WORKBENCH.md)。
 
 本文不是 ERP 说明书，也不是 Agent 分层介绍。只回答一件事：
 

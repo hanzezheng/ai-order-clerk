@@ -12,7 +12,7 @@ Flutter App → HTTP API → AI Employee Runtime（不改）→ ERPNext Adapter
 
 ## 跑起来
 
-电脑上双击仓库根目录的 `启动开单.bat`。
+电脑上：Windows 双击仓库根目录的 `启动开单.bat`；Mac 执行 `./启动开单.sh`。
 
 手机：
 

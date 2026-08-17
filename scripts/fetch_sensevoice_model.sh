@@ -4,9 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$ROOT/mobile/assets/asr"
 mkdir -p "$DEST"
-if [[ -f "$DEST/model.int8.onnx" ]] && [[ "$(stat -c%s "$DEST/model.int8.onnx")" -gt 1000000 ]]; then
-  echo "already have $DEST/model.int8.onnx"
-  exit 0
+if [[ -f "$DEST/model.int8.onnx" ]]; then
+  SIZE="$(stat -f%z "$DEST/model.int8.onnx" 2>/dev/null || stat -c%s "$DEST/model.int8.onnx")"
+  if [[ "$SIZE" -gt 1000000 ]]; then
+    echo "already have $DEST/model.int8.onnx"
+    exit 0
+  fi
 fi
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

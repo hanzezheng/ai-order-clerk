@@ -2,7 +2,7 @@
 
 Voice-first 农批开单员：老板连续自然语言开单，Agent 维护客户、商品、价格与订单任务上下文。
 
-第一阶段做 Agent 后端核心 + V1 最小开单壳：不接 ERP，禁止做成 ERP 前端。
+第一阶段做 Agent 后端核心 + POC 开单壳。Runtime 收口后的可雇版本见 [docs/V1_SALES_CLERK.md](docs/V1_SALES_CLERK.md)：农批 AI 销售开单员 V1。禁止做成 ERP 前端。
 
 需要 **Python 3.12+**（3.9 无法安装）。
 
@@ -36,5 +36,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V06_ERPNEXT_READ_ADAPTER.md](docs/V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter 设计（领域查询 → 投影，不改内核） |
 | [docs/RUNTIME_FREEZE.md](docs/RUNTIME_FREEZE.md) | v0.x Runtime 冻结清单（Phase 1.5 收口） |
 | [docs/SALES_EMPLOYEE_CAPABILITY.md](docs/SALES_EMPLOYEE_CAPABILITY.md) | 第一个商业员工（开单员）能力与三阶段路线 |
+| [docs/V1_SALES_CLERK.md](docs/V1_SALES_CLERK.md) | 农批 AI 销售开单员 V1 产品规格（一天六步、必须产品化 / 明确不做） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

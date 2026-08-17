@@ -9,7 +9,7 @@
 
 Runtime Foundation（语言、裁决、记忆、持久化、语音、ERP 读写）已收口并冻结。下一步容易做成：抽象平台、上第二 Agent、或把催款/库存塞进 `SalesSession`。
 
-产品评审：[SALES_EMPLOYEE_CAPABILITY.md](../SALES_EMPLOYEE_CAPABILITY.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+产品评审：[SALES_EMPLOYEE_CAPABILITY.md](../SALES_EMPLOYEE_CAPABILITY.md)。可雇规格：[V1_SALES_CLERK.md](../V1_SALES_CLERK.md)、[ADR-026](ADR-026-v1-sales-clerk-product.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

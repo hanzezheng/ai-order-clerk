@@ -6,7 +6,7 @@
 >
 > **不是开发新功能。不新增 Agent。不扩展库存 / 支付 / 财务。不改 Runtime / Confirm Gate。**
 >
-> 现场记法见 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)。接入见 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)。决策见 [ADR-035](ADR/ADR-035-v1-pilot-feedback-loop.md)。
+> 现场记法见 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)。接入见 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)。执行手册见 [V1_SALES_CLERK_PILOT_RUNBOOK.md](V1_SALES_CLERK_PILOT_RUNBOOK.md)。决策见 [ADR-035](ADR/ADR-035-v1-pilot-feedback-loop.md)。
 
 观察表回答：摊前记哪些数字和失败原话。本文回答：**这些记录如何分类、如何处理、何时才构成 V1.1 的开发依据。**
 

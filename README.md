@@ -46,5 +46,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V1_SALES_CLERK_PILOT_DATA_ACCESS.md](docs/V1_SALES_CLERK_PILOT_DATA_ACCESS.md) | 开单员 V1 Pilot 数据访问（Adapter 投影进 Runtime，不直查 ERP） |
 | [docs/V1_SALES_CLERK_PILOT_ONBOARDING.md](docs/V1_SALES_CLERK_PILOT_ONBOARDING.md) | 开单员 V1 Pilot 接入（空白档口到第一单、扩大或暂停） |
 | [docs/V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](docs/V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md) | 开单员 V1 Pilot 反馈闭环（分类、失败模板、V1.1 或继续观察） |
+| [docs/V1_SALES_CLERK_PILOT_RUNBOOK.md](docs/V1_SALES_CLERK_PILOT_RUNBOOK.md) | 开单员 V1 Pilot 执行手册（第一档口当天、陪跑、扩大/观察/暂停） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

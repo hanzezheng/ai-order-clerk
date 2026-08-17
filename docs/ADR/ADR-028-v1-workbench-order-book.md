@@ -9,7 +9,7 @@
 
 用户旅程已规定：主界面是今日开单本，嘴巴只写当前单，确认 = 生意事实成立。下一步若没有原型规格，容易把 Demo 做成聊天窗或把 ERP 列表当工作台，或把 `posted` 写进 Confirm Gate。
 
-原型：[V1_SALES_CLERK_WORKBENCH.md](../V1_SALES_CLERK_WORKBENCH.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+原型：[V1_SALES_CLERK_WORKBENCH.md](../V1_SALES_CLERK_WORKBENCH.md)。垂直切片：[V1_SALES_CLERK_VERTICAL_SLICE.md](../V1_SALES_CLERK_VERTICAL_SLICE.md)、[ADR-029](ADR-029-v1-vertical-slice.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

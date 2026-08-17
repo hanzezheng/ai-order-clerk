@@ -198,7 +198,7 @@ Read：只问 `runtime_order_id` / `runtime_customer_id`；只投影 `pending | 
 
 当前目标：打造一个可靠的行业 AI 员工。第一个员工：农批 AI 开单员。
 
-Runtime 已收口。当前产品阶段是 **农批 AI 销售开单员 V1 工作台原型**：今日开单本是老板第一页。规格 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)；旅程 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)；原型 [V1_SALES_CLERK_WORKBENCH.md](V1_SALES_CLERK_WORKBENCH.md)。
+Runtime 已收口。当前产品阶段是 **农批 AI 销售开单员 V1 垂直切片**：一分钟闭环（开单 → 改口 → 好了 → 今日本）。规格见 [V1_SALES_CLERK_VERTICAL_SLICE.md](V1_SALES_CLERK_VERTICAL_SLICE.md)。
 
 V0.6 已落地 Read Adapter 投影；开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 

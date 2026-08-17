@@ -25,7 +25,8 @@
 | [RUNTIME_FREEZE.md](RUNTIME_FREEZE.md) | Phase 1.5 冻结清单：已冻结层、扩展点、Adapter 边界、新员工复用 |
 | [SALES_EMPLOYEE_CAPABILITY.md](SALES_EMPLOYEE_CAPABILITY.md) | 第一个商业员工（开单员）能力定义：老板价值、日流程、三阶段路线 |
 | [V1_SALES_CLERK.md](V1_SALES_CLERK.md) | 农批 AI 销售开单员 V1：一天六步、AI/人工分工、必须产品化与明确不做 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md) |
+| [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md) | 开单员 V1 用户旅程：开门到收摊、当前单、今日开单本、产品边界表 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1211,3 +1212,13 @@ DESIGN §14 开头的「V1」是 POC 开单壳。商业员工 V1 覆盖开门 �
 细则 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)、[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)。
 
 禁止：改 Parser / Policy / Confirm Gate / OrderService / Memory；库存 / 支付 / 财务；submit SO；查账口令；第二员工；ERP 驱动 `confirm_gate`。
+
+### 14.22 开单员 V1 用户旅程（产品化）
+
+目标：把 V1 规格写成老板一天愿意用的工作流。不是新 Agent，不改 Freeze。
+
+主界面是今日开单本。嘴巴只写当前这一张。确认 = 生意事实成立，不是付款 / 发货 / 财务完成。
+
+细则 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)、[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)。
+
+禁止：按客户名自动跳单、查账口令、确认后改单、收款 / 库存 / 财务进开单本。

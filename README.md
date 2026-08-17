@@ -37,5 +37,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/RUNTIME_FREEZE.md](docs/RUNTIME_FREEZE.md) | v0.x Runtime 冻结清单（Phase 1.5 收口） |
 | [docs/SALES_EMPLOYEE_CAPABILITY.md](docs/SALES_EMPLOYEE_CAPABILITY.md) | 第一个商业员工（开单员）能力与三阶段路线 |
 | [docs/V1_SALES_CLERK.md](docs/V1_SALES_CLERK.md) | 农批 AI 销售开单员 V1 产品规格（一天六步、必须产品化 / 明确不做） |
+| [docs/V1_SALES_CLERK_USER_JOURNEY.md](docs/V1_SALES_CLERK_USER_JOURNEY.md) | 开单员 V1 用户旅程（开门到收摊、今日开单本、产品边界） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

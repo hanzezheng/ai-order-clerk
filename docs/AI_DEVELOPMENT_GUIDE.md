@@ -259,7 +259,7 @@ Domain → Service → Policy → Persistence
 评审六问：见架构文 §7。
 ```
 
-当前阶段：不是把 ERP 逻辑放进 Runtime、不是做多 Agent、不是做平台。目标是农批 AI 销售开单员 V1（[V1_SALES_CLERK.md](V1_SALES_CLERK.md)）。ERP 读写都只经 Adapter。
+当前阶段：不是把 ERP 逻辑放进 Runtime、不是做多 Agent、不是做平台。目标是农批 AI 销售开单员 V1 产品化（[V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)）。ERP 读写都只经 Adapter。
 
 不确定一层归属时，优先冻结 Runtime。
 

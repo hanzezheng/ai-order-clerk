@@ -30,6 +30,7 @@ class OrderBookController extends ChangeNotifier {
   String errorText = '';
   String overlay = '';
   int _seq = 0;
+  int _holdEpoch = 0;
 
   String? get currentSessionId => book.currentSessionId;
 
@@ -48,11 +49,15 @@ class OrderBookController extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     errorText = '';
-    await refresh();
+    await Future.wait([refresh(), speech.prepare()]);
     if (currentSessionId == null) {
       await startNextOrder();
     } else {
       await _loadCurrentDraft();
+    }
+    if (!speech.isAvailable && (speech.lastError ?? '').isNotEmpty) {
+      errorText = speech.lastError!;
+      notifyListeners();
     }
   }
 
@@ -61,13 +66,15 @@ class OrderBookController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> startNextOrder() async {
+  Future<void> startNextOrder({bool keepListening = false}) async {
     errorText = '';
     book = await api.createTask();
     _seq = 0;
     replyText = '';
     overlay = '';
-    phase = BookPhase.idle;
+    if (!keepListening) {
+      phase = BookPhase.idle;
+    }
     await _loadCurrentDraft();
   }
 
@@ -82,24 +89,48 @@ class OrderBookController extends ChangeNotifier {
     if (phase == BookPhase.processing) {
       return;
     }
-    if (phase == BookPhase.done || (currentDraft?.isConfirmed ?? false)) {
-      await startNextOrder();
+    final epoch = ++_holdEpoch;
+    if (phase == BookPhase.done || (currentDraft?.isConfirmed ?? false) || currentSessionId == null) {
+      await startNextOrder(keepListening: true);
+    }
+    if (epoch != _holdEpoch) {
+      return;
     }
     errorText = '';
     overlay = '';
     phase = BookPhase.listening;
     notifyListeners();
-    await speech.start();
+    if (!speech.isAvailable) {
+      errorText = speech.lastError ?? '这台手机没有听写。把这句话打在下面。';
+      phase = BookPhase.idle;
+      notifyListeners();
+      return;
+    }
+    await speech.start(
+      onPartial: (partial) {
+        if (epoch != _holdEpoch || phase != BookPhase.listening) {
+          return;
+        }
+        overlay = partial;
+        notifyListeners();
+      },
+    );
+    if (epoch != _holdEpoch) {
+      await speech.stop();
+    }
   }
 
   Future<void> endHold() async {
     if (phase != BookPhase.listening) {
+      _holdEpoch++;
       return;
     }
+    _holdEpoch++;
     final text = (await speech.stop()).trim();
     overlay = text;
     notifyListeners();
     if (text.isEmpty) {
+      errorText = speech.lastError ?? '没听清，按住再说，或打在下面。';
       phase = BookPhase.idle;
       notifyListeners();
       return;
@@ -109,6 +140,13 @@ class OrderBookController extends ChangeNotifier {
 
   Future<void> confirmDone() async {
     await submitUtterance('好了', source: 'text');
+  }
+
+  Future<void> submitTyped(String raw) async {
+    if (phase == BookPhase.processing) {
+      return;
+    }
+    await submitUtterance(raw, source: 'text');
   }
 
   Future<void> submitUtterance(String raw, {required String source}) async {

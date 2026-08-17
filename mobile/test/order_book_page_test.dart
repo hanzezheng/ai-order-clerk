@@ -40,6 +40,9 @@ void main() {
     expect(find.text('好了'), findsOneWidget);
     expect(find.text('库存'), findsNothing);
     expect(find.text('收款'), findsNothing);
+    expect(find.text('听不清就打这句'), findsOneWidget);
+
+    expect(find.text('听不清就打这句'), findsOneWidget);
 
     await controller.submitUtterance('开李老板的单苹果二十箱', source: 'voice');
     await tester.pump();
@@ -50,8 +53,9 @@ void main() {
 
     await controller.confirmDone();
     await tester.pump();
+    expect(controller.currentStatusLabel, contains('已进草稿'));
     expect(find.textContaining('已确认'), findsWidgets);
-    expect(find.text('已进草稿'), findsOneWidget);
+    expect(find.textContaining('已进草稿'), findsWidgets);
     expect(find.text('再开一单'), findsOneWidget);
   });
 }

@@ -250,13 +250,33 @@ class _TaskList extends StatelessWidget {
   }
 }
 
-class _Dock extends StatelessWidget {
+class _Dock extends StatefulWidget {
   const _Dock({required this.controller});
 
   final OrderBookController controller;
 
   @override
+  State<_Dock> createState() => _DockState();
+}
+
+class _DockState extends State<_Dock> {
+  final _typed = TextEditingController();
+
+  @override
+  void dispose() {
+    _typed.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitTyped() async {
+    final text = _typed.text;
+    _typed.clear();
+    await widget.controller.submitTyped(text);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     final done = controller.phase == BookPhase.done || (controller.currentDraft?.isConfirmed ?? false);
     final listening = controller.phase == BookPhase.listening;
     final busy = controller.phase == BookPhase.processing;
@@ -267,41 +287,71 @@ class _Dock extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: GestureDetector(
-                  onTapDown: busy ? null : (_) => controller.beginHold(),
-                  onTapUp: busy ? null : (_) => controller.endHold(),
-                  onTapCancel: busy ? null : controller.endHold,
-                  child: Container(
-                    height: 64,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: listening ? const Color(0xFF9A2B2B) : const Color(0xFF1F7A4D),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Text(
-                      busy
-                          ? '正在写…'
-                          : listening
-                              ? '正在听…'
-                              : done
-                                  ? '再开一单'
-                                  : '按住说话',
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  Expanded(
+                    child: Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: busy ? null : (_) => controller.beginHold(),
+                      onPointerUp: busy ? null : (_) => controller.endHold(),
+                      onPointerCancel: busy ? null : (_) => controller.endHold(),
+                      child: Container(
+                        height: 64,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: listening ? const Color(0xFF9A2B2B) : const Color(0xFF1F7A4D),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Text(
+                          busy
+                              ? '正在写…'
+                              : listening
+                                  ? '正在听…'
+                                  : done
+                                      ? '再开一单'
+                                      : '按住说话',
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    height: 64,
+                    child: FilledButton(
+                      onPressed: busy || done ? null : controller.confirmDone,
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1B241C)),
+                      child: const Text('好了', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                height: 64,
-                child: FilledButton(
-                  onPressed: busy || done ? null : controller.confirmDone,
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1B241C)),
-                  child: const Text('好了', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      enabled: !busy,
+                      controller: _typed,
+                      onSubmitted: (_) => _submitTyped(),
+                      style: const TextStyle(fontSize: 18),
+                      decoration: const InputDecoration(
+                        hintText: '听不清就打这句',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: busy ? null : _submitTyped,
+                    child: const Text('写下'),
+                  ),
+                ],
               ),
             ],
           ),

@@ -27,7 +27,7 @@ Flutter App（按住说话 / 今日开单本 / 档口绑定）
 打开 App → 喊第一单 → 确认「好了」→ 查看今日开单本
 ```
 
-音频不出 Runtime。设备上 ASR 成字，再 POST `text`。口播只展示/播 `reply_text`。
+音频不出 Runtime。设备上 ASR 成字，再 POST `text`。口播只展示/播 `reply_text`。系统听写不可用时，同一路径允许打字提交，不另开入口。
 
 ---
 

@@ -60,4 +60,52 @@ void main() {
     expect(controller.currentDraft!.customer!.displayName, '李老板');
     expect(controller.phase, BookPhase.idle);
   });
+
+  test('松开没有字时提示，不假装开单', () async {
+    final api = FakeClerkApi();
+    final controller = OrderBookController(
+      api: api,
+      stall: const StallBinding(stallName: '3号档', apiBase: 'http://127.0.0.1:8000'),
+      speech: SilentSpeechInput(),
+      tts: SilentSpeechOutput(),
+    );
+    await controller.bootstrap();
+    await controller.beginHold();
+    await controller.endHold();
+    expect(api.turns, isEmpty);
+    expect(controller.errorText, contains('没听清'));
+    expect(controller.phase, BookPhase.idle);
+  });
+
+  test('没有系统听写时提示改打字', () async {
+    final api = FakeClerkApi();
+    final speech = SilentSpeechInput()
+      ..isAvailable = false
+      ..lastError = '这台手机没有听写。把这句话打在下面。';
+    final controller = OrderBookController(
+      api: api,
+      stall: const StallBinding(stallName: '3号档', apiBase: 'http://127.0.0.1:8000'),
+      speech: speech,
+      tts: SilentSpeechOutput(),
+    );
+    await controller.bootstrap();
+    expect(controller.errorText, contains('听写'));
+    await controller.beginHold();
+    expect(controller.phase, BookPhase.idle);
+    expect(api.turns, isEmpty);
+  });
+
+  test('听不清可以打同一句提交', () async {
+    final api = FakeClerkApi();
+    final controller = OrderBookController(
+      api: api,
+      stall: const StallBinding(stallName: '3号档', apiBase: 'http://127.0.0.1:8000'),
+      speech: SilentSpeechInput(),
+      tts: SilentSpeechOutput(),
+    );
+    await controller.bootstrap();
+    await controller.submitTyped('开李老板的单苹果二十箱');
+    expect(api.turns, ['开李老板的单苹果二十箱']);
+    expect(controller.currentDraft!.customer!.displayName, '李老板');
+  });
 }

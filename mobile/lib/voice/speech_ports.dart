@@ -1,5 +1,9 @@
 abstract class SpeechInput {
-  Future<void> start();
+  bool get isAvailable;
+  String? get lastError;
+
+  Future<void> prepare();
+  Future<void> start({void Function(String partial)? onPartial});
   Future<String> stop();
 }
 
@@ -9,9 +13,20 @@ abstract class SpeechOutput {
 
 class SilentSpeechInput implements SpeechInput {
   String transcript = '';
+  @override
+  bool isAvailable = true;
+  @override
+  String? lastError;
 
   @override
-  Future<void> start() async {}
+  Future<void> prepare() async {}
+
+  @override
+  Future<void> start({void Function(String partial)? onPartial}) async {
+    if (transcript.isNotEmpty) {
+      onPartial?.call(transcript);
+    }
+  }
 
   @override
   Future<String> stop() async => transcript;

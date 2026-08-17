@@ -13,12 +13,12 @@ def _client() -> TestClient:
 
 def test_demo_page_first_run_is_obvious_in_ten_seconds():
     html = _client().get("/").text
-    assert "AI开单员" in html
+    assert "今日开单" in html
     assert "还没有开始开单" in html
     assert "按住说话" in html
     assert "先说开谁的单" in html
-    assert 'data-example="开李老板的单"' in html
-    assert 'data-example="苹果60件"' in html
+    assert 'data-example="李老板苹果八十果二十箱"' in html
+    assert 'data-example="刚才苹果改30箱"' in html
     assert 'data-example="好了"' in html
     assert "下一句" not in html
     assert "开发模式" not in html

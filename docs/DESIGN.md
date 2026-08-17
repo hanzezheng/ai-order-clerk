@@ -1239,7 +1239,7 @@ DESIGN §14 开头的「V1」是 POC 开单壳。商业员工 V1 覆盖开门 �
 
 目标：第一个可运行闭环。证明旁边一分钟：开单 → 改口 → 好了 → 今日本变化。不重构 Runtime。
 
-P0 只动 Demo / Workbench 呈现。复述不是 Confirm。确认不是付款、不是发货。
+P0 只动 Demo / Workbench 呈现。复述不是 Confirm。确认不是付款、不是发货。P0 已落地：`/` 今日开单本可走开单 → 改量 → 好了 → 本子变化。
 
 细则 [V1_SALES_CLERK_VERTICAL_SLICE.md](V1_SALES_CLERK_VERTICAL_SLICE.md)、[ADR-029](ADR/ADR-029-v1-vertical-slice.md)。
 

@@ -18,7 +18,7 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 # DATABASE_URL=postgresql://ubuntu@/ai_clerk?host=/var/run/postgresql
 ```
 
-打开 http://127.0.0.1:8000/ 。按住说话（或点例子）。口播只展示后端 `reply_text`，TTS 只念同一句。自然语言只走 `POST /v1/sessions/{id}/turns`。调试时间线：`http://127.0.0.1:8000/?dev=1`。
+打开 http://127.0.0.1:8000/ 。今日开单本：按住说话（或点例子）开李老板的单、改量、好了。口播只展示后端 `reply_text`。自然语言只走 `POST /v1/sessions/{id}/turns`。调试时间线：`http://127.0.0.1:8000/?dev=1`。
 
 ## 文档
 

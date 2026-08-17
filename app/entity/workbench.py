@@ -28,6 +28,15 @@ class WorkbenchShift(BaseModel):
     tasks: list[WorkbenchTaskRef] = Field(default_factory=list)
 
 
+def _customer_label(customer) -> str | None:
+    if customer is None:
+        return None
+    aliases = [item for item in (customer.aliases or []) if item]
+    if aliases:
+        return aliases[0]
+    return customer.name
+
+
 def project_task(session: SalesSession, *, previous: WorkbenchTaskRef | None = None) -> WorkbenchTaskRef:
     customer = session.draft.customer
     confirmed = session.draft.status == "confirmed" or session.status == "confirmed"
@@ -43,7 +52,7 @@ def project_task(session: SalesSession, *, previous: WorkbenchTaskRef | None = N
         order_id=session.draft.order_id,
         status=status,
         customer_id=customer.id if customer is not None else None,
-        customer_label=customer.name if customer is not None else None,
+        customer_label=_customer_label(customer),
         line_count=len(session.draft.lines),
         prices_incomplete=prices_incomplete,
         confirmed_at=confirmed_at,

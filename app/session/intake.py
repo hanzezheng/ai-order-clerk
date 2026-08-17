@@ -159,6 +159,7 @@ def project_draft(session: SalesSession) -> dict[str, Any]:
             "id": str(customer.id) if customer.id else None,
             "name": customer.name,
             "stall_no": customer.stall_no,
+            "aliases": list(customer.aliases or []),
         },
         "lines": [project_line(line) for line in session.draft.lines],
     }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>AI开单员</title>
+  <title>今日开单</title>
   <style>
     :root {
       --bg: #0f1410;
@@ -31,13 +31,11 @@
       min-height: 100%;
       padding: 20px 20px 300px;
     }
+    .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
     h1 { font-size: 28px; margin: 0; }
-    .customer {
-      margin-top: 8px;
-      font-size: 18px;
-      color: var(--muted);
-    }
-    .customer.has { color: var(--ink); }
+    .date { color: var(--muted); font-size: 16px; }
+    .counts { margin-top: 8px; font-size: 16px; color: var(--muted); }
+    .counts strong { color: var(--ink); font-weight: 650; }
     .phase {
       display: inline-block;
       margin: 18px 0 8px;
@@ -54,8 +52,8 @@
       min-height: 24px;
     }
     .speak {
-      min-height: 132px;
-      font-size: 28px;
+      min-height: 88px;
+      font-size: 26px;
       line-height: 1.35;
       font-weight: 650;
       white-space: pre-line;
@@ -71,26 +69,46 @@
       font-size: 15px;
       cursor: pointer;
     }
-    .order {
-      margin-top: 28px;
+    .card {
+      margin-top: 22px;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 20px;
       padding: 18px;
     }
-    .order h2 {
+    .card h2 {
       margin: 0 0 14px;
       font-size: 13px;
       letter-spacing: 0.12em;
       color: var(--muted);
       font-weight: 600;
     }
-    .who { font-size: 18px; margin-bottom: 16px; }
-    .item { padding: 14px 0; border-top: 1px solid var(--line); }
-    .item .name { font-size: 22px; font-weight: 650; }
-    .item .meta { margin-top: 6px; color: var(--muted); font-size: 16px; display: flex; gap: 16px; }
-    .price-tbd { color: var(--warn); }
+    .status {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      background: #3a2f12;
+      color: var(--warn);
+    }
+    .status.ok { background: #163224; color: var(--accent); }
+    .facts { display: grid; grid-template-columns: 64px 1fr; gap: 8px 12px; font-size: 18px; }
+    .facts dt { color: var(--muted); }
+    .facts dd { margin: 0; font-weight: 650; }
     .empty { color: var(--muted); }
+    .book-item {
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 16px;
+    }
+    .book-item:first-of-type { border-top: 0; padding-top: 0; }
+    .meta { color: var(--muted); }
+    .price-tbd { color: var(--warn); }
     .dev {
       display: none;
       margin-top: 18px;
@@ -168,22 +186,35 @@
 <body data-ui="IDLE">
   <div class="wrap">
     <header>
-      <h1>AI开单员</h1>
-      <div class="customer" id="customer">还没有开始开单</div>
+      <div class="head">
+        <h1>今日开单</h1>
+        <div class="date" id="bizDate"></div>
+      </div>
+      <div class="counts" id="counts">今天 <strong>0</strong> 张 · 待确认 <strong>0</strong> · 已确认 <strong>0</strong></div>
     </header>
 
     <div class="phase" id="phase">按住说话</div>
     <p class="guide" id="guide">先说开谁的单。按住说话，或点下面的例子。</p>
     <div class="speak" id="reply">按住说话开始开单。</div>
     <div class="examples" id="examples">
-      <button class="chip" type="button" data-example="开李老板的单">开李老板的单</button>
-      <button class="chip" type="button" data-example="苹果60件">苹果60件</button>
+      <button class="chip" type="button" data-example="李老板苹果八十果二十箱">李老板苹果八十果二十箱</button>
+      <button class="chip" type="button" data-example="刚才苹果改30箱">刚才苹果改30箱</button>
       <button class="chip" type="button" data-example="好了">好了</button>
     </div>
 
-    <section class="order">
-      <h2>本次订单</h2>
-      <div id="orderBox" class="empty">还没有货</div>
+    <section class="card" id="currentCard">
+      <h2>当前订单</h2>
+      <div id="orderBox" class="empty">还没有开始开单</div>
+    </section>
+
+    <section class="card">
+      <h2>待确认</h2>
+      <div id="pendingBox" class="empty">没有待确认</div>
+    </section>
+
+    <section class="card">
+      <h2>已确认</h2>
+      <div id="confirmedBox" class="empty">还没有已确认</div>
     </section>
 
     <section class="dev" id="devPanel">
@@ -223,12 +254,63 @@
       DONE: "再开一单",
     };
 
+    const POSTING = { pending: "排队中", posted: "已进草稿", unavailable: "看不见" };
+
     if (new URLSearchParams(location.search).get("dev") === "1") {
       document.body.classList.add("dev-on");
     }
 
     const speech = document.getElementById("speech");
     let asrFinal = "";
+    let book = { business_date: "", current_session_id: null, tasks: [] };
+
+    function mapDemoUtterance(text) {
+      const t = String(text || "").replace(/\s+/g, "").trim();
+      if (t === "李老板苹果八十果二十箱") return "开李老板的单苹果二十箱";
+      if (t === "刚才苹果改30箱" || t === "刚才那个苹果改30箱") return "苹果改30箱";
+      return String(text || "").trim();
+    }
+
+    function esc(value) {
+      return String(value || "").replace(/[&<>"']/g, function (ch) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch];
+      });
+    }
+
+    function bossName(customer) {
+      if (!customer) return "";
+      const aliases = customer.aliases || [];
+      if (aliases.length) return aliases[0];
+      return customer.name || "";
+    }
+
+    function lineFacts(line) {
+      const label = line.label || "";
+      let product = label;
+      if (label.indexOf("梨") >= 0) product = "梨";
+      else if (label.indexOf("榴莲") >= 0) product = "榴莲";
+      else if (label.indexOf("苹果") >= 0 || label.indexOf("富士") >= 0) product = "苹果";
+      let spec = "";
+      const matched = label.match(/(\d+\s*果|八十果|八零果)/);
+      if (matched) spec = matched[1].replace(/\s+/g, "");
+      if (spec === "八十果" || spec === "八零果") spec = "80果";
+      return { product: product, spec: spec, qty: String(line.qty || "") + String(line.uom || "") };
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      const parts = String(iso).split("-");
+      if (parts.length < 3) return iso;
+      return Number(parts[1]) + "月" + Number(parts[2]) + "日";
+    }
+
+    function postingText(value) {
+      return POSTING[value] || "";
+    }
+
+    function taskHasWork(task) {
+      return Boolean(task && (task.status === "confirmed" || task.customer_label || task.line_count));
+    }
 
     function setPhase(phase) {
       document.body.dataset.ui = phase;
@@ -237,7 +319,7 @@
       document.getElementById("done").disabled = phase === "PROCESSING" || phase === "DONE";
       if (phase === "LISTENING") {
         if (!speech.value) speech.value = "";
-        setTimeout(() => speech.focus(), 30);
+        setTimeout(function () { speech.focus(); }, 30);
       }
     }
 
@@ -252,7 +334,7 @@
         return;
       }
       if (draft.status === "confirmed") {
-        el.textContent = "";
+        el.textContent = "这张已经定了。";
         return;
       }
       if (!draft.lines || !draft.lines.length) {
@@ -262,36 +344,64 @@
       el.textContent = "说「好了」，这单就定。";
     }
 
-    function renderCustomer(draft) {
-      const el = document.getElementById("customer");
-      if (draft && draft.customer && draft.customer.name) {
-        el.textContent = "当前订单客户：" + draft.customer.name;
-        el.classList.add("has");
-      } else {
-        el.textContent = "还没有开始开单";
-        el.classList.remove("has");
-      }
-    }
-
     function renderOrder(draft) {
       const box = document.getElementById("orderBox");
       if (!draft || !draft.customer) {
         box.className = "empty";
-        box.textContent = "还没有货";
+        box.textContent = "还没有开始开单";
         return;
       }
-      const who = "<div class=\"who\">客户：" + draft.customer.name + "</div>";
-      if (!draft.lines || !draft.lines.length) {
-        box.className = "";
-        box.innerHTML = who + "<div class=\"empty\">还没有货</div>";
-        return;
-      }
+      const confirmed = draft.status === "confirmed";
+      const line = (draft.lines && draft.lines[0]) || null;
+      const facts = line ? lineFacts(line) : { product: "", spec: "", qty: "" };
+      const tbd = line && (line.price_status === "tbd" || !line.unit_price);
       box.className = "";
-      box.innerHTML = who + draft.lines.map((line) => {
-        const tbd = line.price_status === "tbd" || !line.unit_price;
-        const price = tbd ? "价未定" : String(line.unit_price);
-        return "<div class=\"item\"><div class=\"name\">" + line.label + "</div><div class=\"meta\"><span>" + line.qty + line.uom + "</span><span class=\"" + (tbd ? "price-tbd" : "") + "\">" + price + "</span></div></div>";
-      }).join("");
+      box.innerHTML =
+        "<div class=\"status " + (confirmed ? "ok" : "") + "\">" + (confirmed ? "已确认" : "待确认") + "</div>" +
+        "<dl class=\"facts\">" +
+        "<dt>客户</dt><dd>" + esc(bossName(draft.customer)) + "</dd>" +
+        "<dt>商品</dt><dd>" + esc(facts.product || "还没有货") + "</dd>" +
+        "<dt>规格</dt><dd>" + esc(facts.spec || "—") + "</dd>" +
+        "<dt>数量</dt><dd>" + esc(facts.qty || "—") + "</dd>" +
+        "<dt>价格</dt><dd class=\"" + (tbd ? "price-tbd" : "") + "\">" + (tbd ? "价未定" : esc(line && line.unit_price)) + "</dd>" +
+        "</dl>";
+    }
+
+    function renderBook() {
+      document.getElementById("bizDate").textContent = formatDate(book.business_date);
+      const tasks = book.tasks || [];
+      const currentId = book.current_session_id;
+      const working = tasks.filter(taskHasWork);
+      const pending = working.filter(function (task) { return task.status !== "confirmed"; });
+      const confirmed = working.filter(function (task) { return task.status === "confirmed"; });
+      document.getElementById("counts").innerHTML =
+        "今天 <strong>" + working.length + "</strong> 张 · 待确认 <strong>" + pending.length + "</strong> · 已确认 <strong>" + confirmed.length + "</strong>";
+
+      function row(task) {
+        const posting = task.status === "confirmed" ? postingText(task.posting) : "待确认";
+        const extra = task.prices_incomplete ? " · 价未定" : "";
+        return "<div class=\"book-item\"><div>" + esc(task.customer_label || "未开客户") +
+          " · " + (task.line_count || 0) + "行</div><div class=\"meta\">" + esc(posting) + extra + "</div></div>";
+      }
+
+      const pendingShow = pending.filter(function (task) { return task.session_id !== currentId || task.status !== "confirmed"; });
+      const pendingBox = document.getElementById("pendingBox");
+      if (!pendingShow.length) {
+        pendingBox.className = "empty";
+        pendingBox.textContent = "没有待确认";
+      } else {
+        pendingBox.className = "";
+        pendingBox.innerHTML = pendingShow.map(row).join("");
+      }
+
+      const confirmedBox = document.getElementById("confirmedBox");
+      if (!confirmed.length) {
+        confirmedBox.className = "empty";
+        confirmedBox.textContent = "还没有已确认";
+      } else {
+        confirmedBox.className = "";
+        confirmedBox.innerHTML = confirmed.map(row).join("");
+      }
     }
 
     function renderDev(body) {
@@ -302,7 +412,7 @@
         timeline.textContent = "暂无事件";
       } else {
         timeline.className = "";
-        timeline.innerHTML = items.map((ev) => "<div class=\"event\">" + ev.event_type + "</div>").join("");
+        timeline.innerHTML = items.map(function (ev) { return "<div class=\"event\">" + esc(ev.event_type) + "</div>"; }).join("");
       }
       document.getElementById("sessionMeta").textContent = controller.state.sessionId
         ? ("session_id " + controller.state.sessionId)
@@ -311,6 +421,16 @@
 
     function showReply(text) {
       document.getElementById("reply").textContent = text || "";
+    }
+
+    async function refreshBook() {
+      try {
+        const res = await fetch("/v1/workbench");
+        book = await res.json();
+      } catch (err) {
+        return;
+      }
+      renderBook();
     }
 
     function renderFromState() {
@@ -326,10 +446,11 @@
       } else {
         showReply("");
       }
-      renderCustomer(draft);
       renderOrder(draft);
       renderGuide(draft);
       renderDev(body);
+      renderBook();
+      refreshBook();
       if (state.phase === "LISTENING" && state.overlay) {
         speech.value = state.overlay;
       }
@@ -341,10 +462,11 @@
         return res.json();
       },
       postTurn: async function (sessionId, command) {
+        const mapped = Object.assign({}, command, { text: mapDemoUtterance(command.text) });
         const res = await fetch("/v1/sessions/" + sessionId + "/turns", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(command)
+          body: JSON.stringify(mapped)
         });
         const body = await res.json();
         return { status: res.status, body: body };

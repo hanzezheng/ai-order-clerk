@@ -9,7 +9,7 @@
 
 数据边界已规定认人认货要哪些字段。若 Resolver / Policy 直查 ERP Customer / Item，会把 Runtime 做成 ERP 插件：模糊搜点选客户、库存挡确认、DocType 进领域。
 
-访问：[V1_SALES_CLERK_PILOT_DATA_ACCESS.md](../V1_SALES_CLERK_PILOT_DATA_ACCESS.md)。服从 [V06_ERPNEXT_READ_ADAPTER.md](../V06_ERPNEXT_READ_ADAPTER.md)、[ADR-023](ADR-023-erpnext-read-adapter.md)、[ADR-032](ADR-032-v1-pilot-data-boundary.md)、[RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+接入：[V1_SALES_CLERK_PILOT_ONBOARDING.md](../V1_SALES_CLERK_PILOT_ONBOARDING.md)、[ADR-034](ADR-034-v1-pilot-onboarding.md)。服从 [V06_ERPNEXT_READ_ADAPTER.md](../V06_ERPNEXT_READ_ADAPTER.md)、[ADR-023](ADR-023-erpnext-read-adapter.md)、[ADR-032](ADR-032-v1-pilot-data-boundary.md)、[RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

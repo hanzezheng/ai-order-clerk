@@ -32,7 +32,8 @@
 | [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md) | 开单员 V1 Pilot 观察：每日记录、失败案例、V1.1 或改流程 |
 | [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md) | 开单员 V1 Pilot 数据边界：企业事实切片、缺数据问老板 |
 | [V1_SALES_CLERK_PILOT_DATA_ACCESS.md](V1_SALES_CLERK_PILOT_DATA_ACCESS.md) | 开单员 V1 Pilot 数据访问：企业事实经 Adapter 投影进入 Runtime |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)；V1 数据访问：[ADR-033](ADR/ADR-033-v1-pilot-data-access.md) |
+| [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md) | 开单员 V1 Pilot 接入：空白档口到第一单、第一周、扩大或暂停 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)；V1 数据访问：[ADR-033](ADR/ADR-033-v1-pilot-data-access.md)；V1 接入：[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1288,3 +1289,13 @@ ERP 提供事实。Read Adapter 读取和投影。Runtime 只消费投影。ERP 
 细则 [V1_SALES_CLERK_PILOT_DATA_ACCESS.md](V1_SALES_CLERK_PILOT_DATA_ACCESS.md)、[ADR-033](ADR/ADR-033-v1-pilot-data-access.md)。
 
 禁止：改 Runtime / Confirm Gate；回合中按名称搜 ERP；库存 / 欠款 / 财务进入切片。
+
+### 14.29 开单员 V1 Pilot 接入
+
+目标：空白档口从接入到第一次喊单。不是 CRM，不是 ERP 实施。
+
+开门空本；切片投影后喊第一单；缺客询问、缺 SKU 挂起；第一周记账后只选扩大或暂停。
+
+细则 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)、[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md)。
+
+禁止：改 Runtime / Confirm Gate；空目录靠猜开张；库存 / 支付 / 财务。

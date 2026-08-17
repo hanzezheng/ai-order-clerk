@@ -6,7 +6,7 @@
 >
 > **不是开发新功能。不新增 Agent。不引入库存 / 支付 / 财务。不改 Runtime / Confirm Gate。**
 >
-> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。数据边界见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。决策见 [ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
+> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。数据边界见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。接入见 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)。决策见 [ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
 
 检查清单回答：能不能去摊前试。本文回答：**试的时候记什么、怎么判断结束。**
 

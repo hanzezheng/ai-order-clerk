@@ -30,7 +30,8 @@
 | [V1_SALES_CLERK_VERTICAL_SLICE.md](V1_SALES_CLERK_VERTICAL_SLICE.md) | 开单员 V1 垂直切片：一分钟闭环范围、P0/P1/P2 |
 | [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md) | 开单员 V1 Pilot：使用前检查、异常场景、Demo/真实边界、能否进档口 |
 | [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md) | 开单员 V1 Pilot 观察：每日记录、失败案例、V1.1 或改流程 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md) |
+| [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md) | 开单员 V1 Pilot 数据边界：企业事实切片、缺数据问老板 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1266,3 +1267,13 @@ P0 只动 Demo / Workbench 呈现。复述不是 Confirm。确认不是付款、
 细则 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)、[ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
 
 禁止：改 Runtime / Confirm Gate；失败原话进 Memory；用观察当借口加收款库存。
+
+### 14.27 开单员 V1 Pilot 数据边界
+
+目标：明确真实 Pilot 所需企业事实。不是 CRM，不是客户管理，不扩展 ERP。
+
+AI 不创造事实。ERP/纸本提供。Runtime 使用。缺数据问老板，不猜。Memory 只来自确认事件。
+
+细则 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)、[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)。
+
+禁止：改 Runtime / Confirm Gate；自动建客户/SKU；聊天进 Memory；库存 / 支付 / 财务。

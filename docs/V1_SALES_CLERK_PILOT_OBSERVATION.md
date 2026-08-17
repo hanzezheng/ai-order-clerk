@@ -6,7 +6,7 @@
 >
 > **不是开发新功能。不新增 Agent。不引入库存 / 支付 / 财务。不改 Runtime / Confirm Gate。**
 >
-> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。决策见 [ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
+> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。数据边界见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。决策见 [ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
 
 检查清单回答：能不能去摊前试。本文回答：**试的时候记什么、怎么判断结束。**
 
@@ -145,7 +145,7 @@ AI 理解成什么（口播 + 当前区实际）：
 
 | 主因 | 例如 | 不要做什么 |
 | --- | --- | --- |
-| 数据不足 | 现场有两个李老板、种子没有；新货名不在树上 | 不要猜客户、不要自动建 SKU |
+| 数据不足 | 现场有两个李老板、种子没有；新货名不在树上。切片见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md) | 不要猜客户、不要自动建 SKU、不要做 CRM |
 | 产品设计问题 | 不知要「再开一单」；把复述当成好了；金脚本映射让人以为任意口语都行 | 不要为此改 Confirm Gate |
 | Runtime 问题 | 同名没问；确认后仍改掉；入账失败却显示已进草稿 | 不要用新 Agent 绕过；先对照检查清单 |
 

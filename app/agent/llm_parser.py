@@ -112,6 +112,8 @@ def apply_language_repairs(parsed: LlmTurnParse, text: str) -> LlmTurnParse:
     for item in parsed.acts:
         slots = item.slots.model_copy()
         act_type = item.type
+        if act_type == "replace_product" and slots.product_mention and slots.mention and not slots.replacement_mention:
+            slots = slots.model_copy(update={"replacement_mention": slots.mention, "mention": None})
         if act_type in _PRODUCT_TYPES and not slots.product_mention and slots.mention:
             slots = slots.model_copy(update={"product_mention": slots.mention, "mention": None})
         if act_type == "add_line" and slots.qty is not None and not slots.product_mention:

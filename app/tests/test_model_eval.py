@@ -19,9 +19,9 @@ from app.agent.prompts import PARSER_PROMPT_ID, PARSER_SYSTEM_PROMPT
 from app.agent.turn_parser import RuleTurnParser
 
 
-def test_prompt_id_is_pinned_v5():
-    assert PARSER_PROMPT_ID == "parser.v5"
-    assert LLMTurnParser.prompt_id == "parser.v5"
+def test_prompt_id_is_pinned_v6():
+    assert PARSER_PROMPT_ID == "parser.v6"
+    assert LLMTurnParser.prompt_id == "parser.v6"
     assert "不要选择 SKU" in PARSER_SYSTEM_PROMPT
     assert "不要写记忆" in PARSER_SYSTEM_PROMPT
     assert "不要判断能否确认" in PARSER_SYSTEM_PROMPT
@@ -30,10 +30,18 @@ def test_prompt_id_is_pinned_v5():
     assert "禁止 add_item" in PARSER_SYSTEM_PROMPT
     assert "refine_spec" in PARSER_SYSTEM_PROMPT
     assert "再加20件" in PARSER_SYSTEM_PROMPT
-    assert "product_mention" in PARSER_SYSTEM_PROMPT
     assert "苹果要烟台八零果" in PARSER_SYSTEM_PROMPT
+    assert "梨要一级箱装" in PARSER_SYSTEM_PROMPT
+    assert "金边榴莲三个，苹果要八零果" in PARSER_SYSTEM_PROMPT
+    assert "刚才那个" in PARSER_SYSTEM_PROMPT
+    assert "replacement_mention" in PARSER_SYSTEM_PROMPT
+    assert "focus 由系统维护" in PARSER_SYSTEM_PROMPT
+    assert "商品归属" in PARSER_SYSTEM_PROMPT
+    assert "结构示例" in PARSER_SYSTEM_PROMPT
     assert "槽位只用 spec_mention" not in PARSER_SYSTEM_PROMPT
     assert "line_id" in PARSER_SYSTEM_PROMPT
+    assert "红富士80" not in PARSER_SYSTEM_PROMPT
+    assert "王老板" not in PARSER_SYSTEM_PROMPT
 
 
 def test_qwen_flat_array_counts_as_model_pass_not_fallback():
@@ -79,7 +87,7 @@ def test_fake_dataset_is_unscored_and_has_required_report_fields():
     assert report.scored is False
     assert report.mode == "fake"
     assert report.model == "fake"
-    assert report.prompt_id == "parser.v5"
+    assert report.prompt_id == "parser.v6"
     assert report.veto is False
     assert report.stall_oral_pass_rate == 1.0
     blob = report_to_json(report)
@@ -91,6 +99,93 @@ def test_fake_dataset_is_unscored_and_has_required_report_fields():
         assert "severity" in row
         assert row["severity"] == "pass"
         assert row["model_pass"] is True
+
+
+def test_v6_language_structure_cases_are_in_dataset():
+    dataset_rev, cases = load_parser_cases()
+    assert dataset_rev == "4"
+    by_id = {case.id: case for case in cases}
+    pear = by_id["pear-grade-packing"]
+    assert pear.expected_acts[0]["slots"] == {"product_mention": "梨", "spec_mention": "一级箱装"}
+    burst = by_id["burst-durian-then-apple-spec"]
+    assert burst.expected_acts[1]["slots"]["product_mention"] == "苹果"
+    assert "line_id" not in burst.expected_acts[1]["slots"]
+    assert by_id["spec-80"].expected_acts[0]["slots"] == {"spec_mention": "八零果"}
+    assert by_id["add-three-boxes-pear"].expected_acts[0]["type"] == "add_line"
+    assert by_id["burst-anaphora-just-now"].expected_acts[2]["slots"]["product_mention"] == "刚才那个"
+    assert by_id["replace-golden-jinzhen"].expected_acts[0]["slots"] == {
+        "product_mention": "金边",
+        "replacement_mention": "金枕",
+    }
+    assert by_id["open-lao-li"].expected_acts[0]["slots"]["customer_mention"] == "老李"
+    assert len(by_id["apple-eighty-sixty"].expected_acts) == 1
+    assert by_id["apple-spec-qty-one-act"].expected_acts[0]["slots"]["spec_mention"] == "八零果"
+    assert by_id["correct-qty-keep-order"].expected_acts[0]["slots"]["qty"] == 60
+    assert by_id["correct-qty-keep-order"].expected_acts[1]["type"] == "set_qty"
+
+
+def test_named_spec_missing_product_mention_fails_l1():
+    case = ParserEvaluationCase(
+        id="pear-grade-packing",
+        text="梨要一级箱装",
+        expected_acts=[{"type": "refine_spec", "slots": {"product_mention": "梨", "spec_mention": "一级箱装"}}],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(default={"acts": [{"type": "refine_spec", "slots": {"spec_mention": "一级箱装"}}]})
+    )
+    report = LanguageBenchmark().evaluate([case], parser, mode="live", model="probe", capture=capture)
+    assert report.records[0].model_pass is False
+    assert report.records[0].l0_violated is False
+
+
+def test_multi_product_spec_without_named_product_fails_l1():
+    case = ParserEvaluationCase(
+        id="burst-durian-then-apple-spec",
+        text="金边榴莲三个，苹果要八零果",
+        expected_acts=[
+            {"type": "set_line", "slots": {"product_mention": "金边榴莲", "qty": 3, "uom": "个"}},
+            {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "八零果"}},
+        ],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(
+            default={
+                "acts": [
+                    {"type": "set_line", "slots": {"product_mention": "金边榴莲", "qty": 3, "uom": "个"}},
+                    {"type": "refine_spec", "slots": {"spec_mention": "八零果"}},
+                ]
+            }
+        )
+    )
+    report = LanguageBenchmark().evaluate([case], parser, mode="live", model="probe", capture=capture)
+    assert report.records[0].model_pass is False
+
+
+def test_qty_correction_must_not_collapse_to_final_qty():
+    case = ParserEvaluationCase(
+        id="correct-qty-keep-order",
+        text="苹果60件，不对改80件",
+        expected_acts=[
+            {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
+            {"type": "set_qty", "slots": {"qty": 80, "uom": "件"}},
+        ],
+    )
+    parser, capture = build_eval_parser(
+        FakeLlmClient(
+            default={"acts": [{"type": "set_line", "slots": {"product_mention": "苹果", "qty": 80, "uom": "件"}}]}
+        )
+    )
+    report = LanguageBenchmark().evaluate([case], parser, mode="live", model="probe", capture=capture)
+    assert report.records[0].model_pass is False
+
+
+def test_old_prompt_versions_are_retained():
+    from app.agent.prompts import PARSER_PROMPTS
+
+    assert "parser.v4" in PARSER_PROMPTS
+    assert "parser.v5" in PARSER_PROMPTS
+    assert "parser.v6" in PARSER_PROMPTS
+    assert PARSER_PROMPTS["parser.v5"] != PARSER_PROMPTS["parser.v6"]
 
 
 def test_unconfigured_mode_is_not_live_score():

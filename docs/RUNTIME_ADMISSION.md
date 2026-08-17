@@ -4,7 +4,7 @@
 >
 > 冻结：不改 Prompt、Resolver、Policy、`confirm_gate`、OrderService、Memory。不上 ASR/TTS、ERP、LangGraph、Tool Calling。失败只记录，不为通过测试放宽闸门。
 
-L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。parser.v5 只修正 G1 句中货名+规格的归属。本文件是 L4 金脚本准入。
+L1 live（qwen3.7-plus + `parser.v4`）已证明 `Text → SpeechAct[]`。parser.v6 用语言归属规则与 `replacement_mention` 修多行货名+规格。本文件是 L4 金脚本准入。
 
 ---
 
@@ -62,11 +62,30 @@ G1 比口语清单多两步：`王记水果店`（否则无法确认）、`加�
 | B | LLM 仅实验；含 Fake 绿但未跑 live、危险行为、不稳定 |
 | C | 失败主要在语言抽取，需改 Prompt 后重评（本阶段仍不改 Prompt） |
 
-未得 A 之前，不上语音。
+未得 A 之前，不上语音。L4 已得 A 之后，语言入口可默认；ASR / TTS 仍须另开阶段。
 
 ---
 
-## live 结论（qwen3.7-plus + parser.v4）
+## live 结论（qwen3.7-plus + parser.v6）
+
+| 项 | 值 |
+| --- | --- |
+| model | qwen3.7-plus |
+| prompt_id | parser.v6 |
+| dataset_rev | g1-g4.v1 |
+| Decision | **A** |
+
+Runtime：G1–G4 真 Parser 驱动现网 Runner 通过，三轮草稿快照一致。无 `guessed_sku` / `guessed_customer` / `confirm_violation`。
+
+含义：
+
+- Qwen 不只是会抽 SpeechAct，而是可以作为 AI 开单员的**默认语言入口**。
+- 现网 Runtime（Understanding / Resolver / Policy / Confirm Gate / Memory）未改。
+- ASR / TTS / ERP 仍未接入。语音是下一阶段，不是本结论的一部分。
+
+---
+
+## 历史：parser.v4 live 为 C
 
 | 项 | 值 |
 | --- | --- |
@@ -75,35 +94,12 @@ G1 比口语清单多两步：`王记水果店`（否则无法确认）、`加�
 | dataset_rev | g1-g4.v1 |
 | Decision | **C** |
 
-Runtime：G1 fail；G2 / G3 / G4 未出现在失败脚本中。taxonomy：`spec_lost×1`，`wrong_act×1`。无 `guessed_sku` / `guessed_customer` / `confirm_violation`。
-
-含义：
-
-- 真模型可以驱动熟客（G2）、连报不中断（G3）、失败保持（G4）。
-- 不能作为默认语言入口：王记规格闭环（G1）规格未落到已有 FUJI80，随后 `confirm_gate` 正确拒绝。
-- 不上语音。不改 Resolver / Policy / Confirm Gate / Memory。
-
-最可能机制（与 Fake 金脚本对照，本阶段不改 Prompt）：
-
-G1 在「加两个金边榴莲」之后说「苹果要烟台八零果」。Session focus 在榴莲。`parser.v4` 写着规格「槽位只用 spec_mention」，光杆 `refine_spec` 会打在最后一行，苹果保持 hang，确认失败。这正好是 `spec_lost×1` + `wrong_act×1`。G2 的「统货」能过，是因为当时只有苹果一行。
-
-下一阶段若升 Prompt（如 parser.v5），只允许改语言契约：句中带货名的规格必须带着 `product_mention`，禁止拆成「光杆 refine_spec」。不得为此改闸门或让模型选 SKU。
+当时 G1 `spec_lost×1` + `wrong_act×1`。光杆 `refine_spec` 打在榴莲行，苹果未提升 FUJI80，`confirm_gate` 正确拒绝。parser.v6 用语言归属规则修复后复测得 A。
 
 ---
 
-## parser.v5
+## parser.v6
 
-Runtime 已 pin `parser.v5`。不改 Resolver / Policy / Confirm Gate / Memory。
+Runtime 已 pin `parser.v6`（v5 文本保留）。核心是语言归属：句中出现的货名必须进 `product_mention`，focus 由系统维护。`replacement_mention` 只是替品原词，Runner 仍不执行 `replace_product`。不改 Resolver / Policy / Confirm Gate / Memory。
 
-请用真模型重跑 L1 与 G1–G4（G1 默认三轮）：
-
-```text
-export RUN_LIVE_LLM=1
-export LLM_API_KEY=…
-export LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-export LLM_MODEL=qwen3.7-plus
-python3 -m app.agent.live_eval
-python3 -m app.agent.runtime_admission
-```
-
-未得 A 之前仍不上语音。
+qwen3.7-plus + parser.v6 的 L4 live 为 **A**。语言入口可默认。ASR / TTS 另开阶段。

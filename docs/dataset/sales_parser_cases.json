@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 4,
   "purpose": "parser_language_only",
   "notes": "只评 SpeechAct 语言槽。禁止期望 SKU、客户 ID、店名消歧、档案默认或行情价。",
   "cases": [
@@ -217,8 +217,7 @@
       "tag": "stall_oral",
       "text": "苹果八十果六十件",
       "expected_acts": [
-        {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
-        {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "八十果"}}
+        {"type": "set_line", "slots": {"product_mention": "苹果", "spec_mention": "八十果", "qty": 60, "uom": "件"}}
       ]
     },
     {
@@ -313,6 +312,100 @@
         {"type": "refine_spec", "slots": {"spec_mention": "八零果"}}
       ],
       "notes": "期望里禁止出现 SKU 全称"
+    },
+    {
+      "id": "pear-grade-packing",
+      "tag": "stall_oral",
+      "text": "梨要一级箱装",
+      "expected_acts": [
+        {"type": "refine_spec", "slots": {"product_mention": "梨", "spec_mention": "一级箱装"}}
+      ],
+      "notes": "货名+规格必须同槽，禁止光杆 spec_mention"
+    },
+    {
+      "id": "burst-durian-then-apple-spec",
+      "tag": "stall_oral",
+      "text": "金边榴莲三个，苹果要八零果",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "金边榴莲", "qty": 3, "uom": "个"}},
+        {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "八零果"}}
+      ],
+      "notes": "多商品后规格必须绑后一个货名，禁止 line_id"
+    },
+    {
+      "id": "add-three-boxes-pear",
+      "tag": "stall_oral",
+      "text": "再来三箱梨",
+      "expected_acts": [
+        {"type": "add_line", "slots": {"product_mention": "梨", "qty": 3, "uom": "箱"}}
+      ]
+    },
+    {
+      "id": "burst-anaphora-just-now",
+      "tag": "stall_oral",
+      "text": "苹果60件，梨50件，刚才那个改80件",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
+        {"type": "set_line", "slots": {"product_mention": "梨", "qty": 50, "uom": "件"}},
+        {"type": "set_qty", "slots": {"product_mention": "刚才那个", "qty": 80, "uom": "件"}}
+      ],
+      "notes": "禁止把刚才那个补成具体货名或 SKU"
+    },
+    {
+      "id": "replace-golden-jinzhen",
+      "tag": "stall_oral",
+      "text": "金边不要了换金枕",
+      "expected_acts": [
+        {"type": "replace_product", "slots": {"product_mention": "金边", "replacement_mention": "金枕"}}
+      ],
+      "notes": "保留原词，禁止选 SKU"
+    },
+    {
+      "id": "open-lao-li",
+      "tag": "stall_oral",
+      "text": "开老李的单",
+      "expected_acts": [
+        {"type": "start_order", "slots": {"customer_mention": "老李"}}
+      ],
+      "notes": "禁止生成客户实体或 customer_id"
+    },
+    {
+      "id": "apple-price-san-kuai",
+      "tag": "stall_oral",
+      "text": "苹果按三块",
+      "expected_acts": [
+        {"type": "set_price", "slots": {"product_mention": "苹果", "unit_price": 3}}
+      ],
+      "notes": "只抽原句数字，禁止编行情价"
+    },
+    {
+      "id": "apple-spec-qty-one-act",
+      "tag": "stall_oral",
+      "text": "苹果八零果60件",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "苹果", "spec_mention": "八零果", "qty": 60, "uom": "件"}}
+      ],
+      "notes": "同一商品品名+规格+数量合成一条，禁止拆成光杆 refine_spec"
+    },
+    {
+      "id": "correct-qty-keep-order",
+      "tag": "stall_oral",
+      "text": "苹果60件，不对改80件",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "苹果", "qty": 60, "uom": "件"}},
+        {"type": "set_qty", "slots": {"qty": 80, "uom": "件"}}
+      ],
+      "notes": "按说话顺序，禁止直接 set_line qty=80"
+    },
+    {
+      "id": "must-not-bind-spec-to-previous-product",
+      "tag": "must_not_guess",
+      "text": "金边榴莲三个，苹果要八零果",
+      "expected_acts": [
+        {"type": "set_line", "slots": {"product_mention": "金边榴莲", "qty": 3, "uom": "个"}},
+        {"type": "refine_spec", "slots": {"product_mention": "苹果", "spec_mention": "八零果"}}
+      ],
+      "notes": "禁止 sku_id / line_id / 把规格绑到金边"
     }
   ]
 }

@@ -35,7 +35,9 @@
 | [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md) | 开单员 V1 Pilot 接入：空白档口到第一单、第一周、扩大或暂停 |
 | [V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md) | 开单员 V1 Pilot 反馈闭环：分类、失败模板、V1.1 或继续观察 |
 | [V1_SALES_CLERK_PILOT_RUNBOOK.md](V1_SALES_CLERK_PILOT_RUNBOOK.md) | 开单员 V1 Pilot 执行手册：第一档口当天怎么跑、陪跑、扩大/观察/暂停 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)；V1 数据访问：[ADR-033](ADR/ADR-033-v1-pilot-data-access.md)；V1 接入：[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md)；V1 反馈：[ADR-035](ADR/ADR-035-v1-pilot-feedback-loop.md)；V1 执行手册：[ADR-036](ADR/ADR-036-v1-pilot-runbook.md) |
+| [V1_SALES_CLERK_FLUTTER_APP.md](V1_SALES_CLERK_FLUTTER_APP.md) | 开单员 V1 Flutter App：今日开单本、Voice First、档口绑定；只调现有 HTTP |
+| [V1_SALES_CLERK_CHINA_ASR.md](V1_SALES_CLERK_CHINA_ASR.md) | 开单员 V1 端侧听写：sherpa-onnx SenseVoice；不依赖系统听写 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)；V1 数据访问：[ADR-033](ADR/ADR-033-v1-pilot-data-access.md)；V1 接入：[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md)；V1 反馈：[ADR-035](ADR/ADR-035-v1-pilot-feedback-loop.md)；V1 执行手册：[ADR-036](ADR/ADR-036-v1-pilot-runbook.md)；V1 Flutter App：[ADR-037](ADR/ADR-037-v1-flutter-app.md)；V1 端侧听写：[ADR-038](ADR/ADR-038-v1-ondevice-sensevoice.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1321,3 +1323,23 @@ ERP 提供事实。Read Adapter 读取和投影。Runtime 只消费投影。ERP 
 细则 [V1_SALES_CLERK_PILOT_RUNBOOK.md](V1_SALES_CLERK_PILOT_RUNBOOK.md)、[ADR-036](ADR/ADR-036-v1-pilot-runbook.md)。
 
 禁止：改 Runtime / Confirm Gate；代选客代点好了；用执行当借口加库存/支付。
+
+### 14.32 开单员 V1 Flutter App
+
+目标：农批老板用手机打开今日开单本、按住喊第一单、改未确认、好了、看今日张数和入账。不是 ERP 前端。
+
+路径：Flutter → 现有 HTTP → Runtime（不改）→ ERPNext Adapter。音频在设备上 ASR，只 POST `text`。确认仍走 turns「好了」。一个老板对应一个档口，存在本机。
+
+细则 [V1_SALES_CLERK_FLUTTER_APP.md](V1_SALES_CLERK_FLUTTER_APP.md)、[ADR-037](ADR/ADR-037-v1-flutter-app.md)。代码在 `mobile/`。
+
+禁止：改 Runtime / Confirm Gate；库存 / 支付 / 财务 / CRM；新 Agent。
+
+### 14.33 开单员 V1 端侧听写
+
+目标：国内真机按住能出字。系统听写不当默认。不是新员工。
+
+路径：按住录音 → 设备 SenseVoice → final 文本 → 现有 turns。不映射口令。音频不到 Runtime。
+
+细则 [V1_SALES_CLERK_CHINA_ASR.md](V1_SALES_CLERK_CHINA_ASR.md)、[ADR-038](ADR/ADR-038-v1-ondevice-sensevoice.md)。
+
+禁止：改 Runtime / Confirm Gate；用 LLM 修识别；新增 `/voice`。

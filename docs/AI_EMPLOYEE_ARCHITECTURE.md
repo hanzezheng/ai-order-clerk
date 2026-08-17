@@ -198,7 +198,7 @@ Read：只问 `runtime_order_id` / `runtime_customer_id`；只投影 `pending | 
 
 当前目标：打造一个可靠的行业 AI 员工。第一个员工：农批 AI 开单员。
 
-Runtime 已收口。当前产品阶段是 **农批 AI 销售开单员 V1 Pilot 执行手册**：第一档口当天怎么跑，按老板习惯判断扩大/观察/暂停。表 [V1_SALES_CLERK_PILOT_RUNBOOK.md](V1_SALES_CLERK_PILOT_RUNBOOK.md)。
+Runtime 已收口。当前产品阶段是 **农批 AI 销售开单员 V1 端侧听写**：按住说话用设备上 SenseVoice 出字，再进现有 turns。不改 Runtime。见 [V1_SALES_CLERK_CHINA_ASR.md](./V1_SALES_CLERK_CHINA_ASR.md)、[ADR-038](./ADR/ADR-038-v1-ondevice-sensevoice.md)。
 
 V0.6 已落地 Read Adapter 投影；开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 

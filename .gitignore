@@ -6,6 +6,7 @@ __pycache__/
 dist/
 build/
 .DS_Store
+.dart_tool/
 docs/eval/runs/*.json
 docs/eval/runs/runtime_admission_report.md
 docs/eval/runs/*-runtime-admission.md

@@ -1,21 +1,45 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+from os import environ
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from app.api.routers import health, sessions, workbench
+from app.api.routers import health, presence, sessions, workbench
 from app.bootstrap import AppWorld, build_app_world
 
 STATIC_DIR = Path(__file__).resolve().parent / "api" / "static"
 DEMO_PAGE = STATIC_DIR / "index.html"
 
 
+def _presence_enabled() -> bool:
+    return environ.get("CLERK_PRESENCE", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    beacon = None
+    if _presence_enabled():
+        from app.api.presence import PresenceBeacon
+
+        try:
+            beacon = PresenceBeacon(http_port=int(environ.get("CLERK_HTTP_PORT", "8000")))
+            beacon.start()
+            app.state.presence = beacon
+        except OSError:
+            beacon = None
+    yield
+    if beacon is not None:
+        beacon.stop()
+
+
 def create_app(world: AppWorld | None = None) -> FastAPI:
-    app = FastAPI(title="ai-order-clerk", version="0.1.0")
+    app = FastAPI(title="ai-order-clerk", version="0.1.0", lifespan=_lifespan)
     app.state.world = world or build_app_world()
     app.include_router(health.router)
+    app.include_router(presence.router)
     app.include_router(sessions.router)
     app.include_router(workbench.router)
 

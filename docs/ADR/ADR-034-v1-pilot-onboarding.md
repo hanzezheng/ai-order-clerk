@@ -9,7 +9,7 @@
 
 数据与访问边界已规定要哪些事实、怎么进 Catalog。若没有接入顺序，空白档口会做成：先上 CRM、先实施 ERP、或空目录让模型猜第一单。
 
-接入：[V1_SALES_CLERK_PILOT_ONBOARDING.md](../V1_SALES_CLERK_PILOT_ONBOARDING.md)。服从 [ADR-032](ADR-032-v1-pilot-data-boundary.md)、[ADR-033](ADR-033-v1-pilot-data-access.md)、[ADR-031](ADR-031-v1-pilot-observation.md)、[RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+闭环：[V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](../V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md)、[ADR-035](ADR-035-v1-pilot-feedback-loop.md)。服从 [ADR-032](ADR-032-v1-pilot-data-boundary.md)、[ADR-033](ADR-033-v1-pilot-data-access.md)、[ADR-031](ADR-031-v1-pilot-observation.md)、[RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

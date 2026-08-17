@@ -33,7 +33,8 @@
 | [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md) | 开单员 V1 Pilot 数据边界：企业事实切片、缺数据问老板 |
 | [V1_SALES_CLERK_PILOT_DATA_ACCESS.md](V1_SALES_CLERK_PILOT_DATA_ACCESS.md) | 开单员 V1 Pilot 数据访问：企业事实经 Adapter 投影进入 Runtime |
 | [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md) | 开单员 V1 Pilot 接入：空白档口到第一单、第一周、扩大或暂停 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)；V1 数据访问：[ADR-033](ADR/ADR-033-v1-pilot-data-access.md)；V1 接入：[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md) |
+| [V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md) | 开单员 V1 Pilot 反馈闭环：分类、失败模板、V1.1 或继续观察 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md)；开单员 V1：[ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)；V1 用户旅程：[ADR-027](ADR/ADR-027-v1-user-journey-current-order.md)；V1 开单本原型：[ADR-028](ADR/ADR-028-v1-workbench-order-book.md)；V1 垂直切片：[ADR-029](ADR/ADR-029-v1-vertical-slice.md)；V1 Pilot：[ADR-030](ADR/ADR-030-v1-pilot-hardening.md)；V1 观察：[ADR-031](ADR/ADR-031-v1-pilot-observation.md)；V1 数据边界：[ADR-032](ADR/ADR-032-v1-pilot-data-boundary.md)；V1 数据访问：[ADR-033](ADR/ADR-033-v1-pilot-data-access.md)；V1 接入：[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md)；V1 反馈：[ADR-035](ADR/ADR-035-v1-pilot-feedback-loop.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1299,3 +1300,13 @@ ERP 提供事实。Read Adapter 读取和投影。Runtime 只消费投影。ERP 
 细则 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)、[ADR-034](ADR/ADR-034-v1-pilot-onboarding.md)。
 
 禁止：改 Runtime / Confirm Gate；空目录靠猜开张；库存 / 支付 / 财务。
+
+### 14.30 开单员 V1 Pilot 反馈闭环
+
+目标：试用反馈如何变成迭代依据。不是新功能。
+
+验证日常开单习惯，不验证替代老板。失败分类后只补事实、打磨外侧或暂不处理。核心看明天还用不用。
+
+细则 [V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md)、[ADR-035](ADR/ADR-035-v1-pilot-feedback-loop.md)。
+
+禁止：改 Runtime / Confirm Gate；用不敢确认放宽闸门；用反馈上库存/支付/财务。

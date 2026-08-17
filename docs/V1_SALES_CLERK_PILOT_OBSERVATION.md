@@ -6,7 +6,7 @@
 >
 > **不是开发新功能。不新增 Agent。不引入库存 / 支付 / 财务。不改 Runtime / Confirm Gate。**
 >
-> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。数据边界见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。接入见 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)。决策见 [ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
+> 进摊条件见 [V1_SALES_CLERK_PILOT_CHECKLIST.md](V1_SALES_CLERK_PILOT_CHECKLIST.md)。数据边界见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。接入见 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)。反馈闭环见 [V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md)。决策见 [ADR-031](ADR/ADR-031-v1-pilot-observation.md)。
 
 检查清单回答：能不能去摊前试。本文回答：**试的时候记什么、怎么判断结束。**
 
@@ -19,7 +19,7 @@
 1. 试班前：检查清单 §1 五项通过。  
 2. 每个早市 / 每个营业日：填一张 **每日使用记录** + 当天的效率 / 信任 / 错误。  
 3. **每一次失败**另开一条失败案例，不合并、不事后圆。  
-4. 试班结束：用 §5 判断 **继续 V1.1** 还是 **调整产品流程**。
+4. 试班结束：用 §5 判断 **继续 V1.1** 还是 **调整产品流程**。反馈如何变成迭代依据见 [V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md)。
 
 失败案例是行业语言资产，不是只拿来修 bug。能进 [DOMAIN.md](DOMAIN.md) / [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) 的口语，记原话。**禁止**把失败原话写进 Memory。
 

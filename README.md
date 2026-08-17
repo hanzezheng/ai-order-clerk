@@ -40,5 +40,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V1_SALES_CLERK_USER_JOURNEY.md](docs/V1_SALES_CLERK_USER_JOURNEY.md) | 开单员 V1 用户旅程（开门到收摊、今日开单本、产品边界） |
 | [docs/V1_SALES_CLERK_WORKBENCH.md](docs/V1_SALES_CLERK_WORKBENCH.md) | 开单员 V1 今日开单本原型（工作台、当前单五态、5 分钟验收） |
 | [docs/V1_SALES_CLERK_VERTICAL_SLICE.md](docs/V1_SALES_CLERK_VERTICAL_SLICE.md) | 开单员 V1 垂直切片（一分钟闭环、P0/P1/P2） |
+| [docs/V1_SALES_CLERK_PILOT_CHECKLIST.md](docs/V1_SALES_CLERK_PILOT_CHECKLIST.md) | 开单员 V1 Pilot 检查（可靠性、异常、能否进档口） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

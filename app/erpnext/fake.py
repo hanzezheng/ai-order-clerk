@@ -26,6 +26,7 @@ class FakeErpGateway:
         self.items: list[dict] = []
         self.sales_orders: list[dict] = []
         self.fail_next = False
+        self.fail_next_read = False
         self.calls: list[str] = []
 
     def ensure_customer(self, draft: ErpCustomerDraft) -> str:
@@ -103,3 +104,31 @@ class FakeErpGateway:
         self.sales_orders.append(document)
         self.maps.put_order(draft.runtime_order_id, name)
         return name
+
+    def fetch_sales_order(self, runtime_order_id: UUID) -> dict | None:
+        self.calls.append("fetch_sales_order")
+        if self.fail_next_read:
+            self.fail_next_read = False
+            raise ErpGatewayError("erp_unavailable")
+        existing = self.maps.order(runtime_order_id)
+        for document in self.sales_orders:
+            if document.get("runtime_order_id") == str(runtime_order_id) or (
+                existing is not None and document.get("name") == existing
+            ):
+                return document
+        return None
+
+    def list_draft_sales_orders(self, runtime_customer_id: UUID) -> list[dict]:
+        self.calls.append("list_draft_sales_orders")
+        if self.fail_next_read:
+            self.fail_next_read = False
+            raise ErpGatewayError("erp_unavailable")
+        customer = self.maps.customer(runtime_customer_id)
+        if customer is None:
+            return []
+        return [
+            document
+            for document in self.sales_orders
+            if document.get("customer") == customer and int(document.get("docstatus") or 0) == 0
+        ]
+

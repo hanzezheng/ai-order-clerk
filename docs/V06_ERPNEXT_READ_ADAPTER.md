@@ -1,12 +1,12 @@
 # V0.6 ERPNext Read Adapter
 
 > 当前遵守 [AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md)。
-> 本 Sprint 只允许修改：**ERPNext Read Adapter**（本文件为设计；实现另批）。
+> 本 Sprint 只允许修改：**ERPNext Read Adapter**（`app/erpnext/` 读端口、装配投影、本文件与 ADR-023）。
 > 禁止修改：Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory。
 >
-> 当前版本：`v0.5 ERPNext Write Adapter`（Draft Sales Order 已写入）。
+> 当前版本：`v0.6 ERPNext Read Adapter`。
 >
-> **只输出设计，不写代码。** 最高架构约束仍是架构文。产品细则见 [DESIGN.md](DESIGN.md)。决策见 [ADR-023](ADR/ADR-023-erpnext-read-adapter.md)。
+> 已落地：`装配层 Domain Query → Read Adapter → pending | posted | unavailable`。决策见 [ADR-023](ADR/ADR-023-erpnext-read-adapter.md)。
 
 路径固定（读与写分离）：
 
@@ -360,9 +360,7 @@ DecisionPolicy / confirm_gate
 
 ---
 
-## 9. 设计批准后的落地顺序
-
-仍不在本文件写代码：
+## 9. 落地顺序（已完成）
 
 ```text
 1. EnterpriseFacts 形状 + Fake 读（只读 V0.5 内存 SO）

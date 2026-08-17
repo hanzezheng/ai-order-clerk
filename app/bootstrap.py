@@ -24,6 +24,8 @@ from app.entity.session import SalesSession
 from app.erpnext.consumer import ErpnextConsumer
 from app.erpnext.fake import FakeErpGateway
 from app.erpnext.http import HttpErpGateway, live_gateway_from_env
+from app.erpnext.facts import EnterpriseFactPort
+from app.erpnext.read import ErpnextReadAdapter
 from app.events.consumers import MemoryConsumer, TimelineConsumer
 from app.events.dispatcher import EventDispatcher
 from app.events.gateway import TurnGateway
@@ -58,6 +60,7 @@ class AppWorld:
     workbench: WorkbenchService
     outbox: OutboxRepository
     erpnext: FakeErpGateway | HttpErpGateway
+    facts: EnterpriseFactPort
     engine: object | None = None
 
 
@@ -97,6 +100,7 @@ def assemble_world(
     memory_policy = MemoryPolicy()
     memory_service = MemoryService(bundle.aliases, bundle.prices, bundle.catalog)
     erp_gateway = live_gateway_from_env() or FakeErpGateway()
+    facts = ErpnextReadAdapter(erp_gateway)
     dispatcher = EventDispatcher(
         uow=unit,
         outbox=bundle.outbox,
@@ -155,6 +159,7 @@ def assemble_world(
         workbench=workbench,
         outbox=bundle.outbox,
         erpnext=erp_gateway,
+        facts=facts,
         engine=engine,
     )
 

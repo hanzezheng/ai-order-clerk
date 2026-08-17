@@ -116,7 +116,7 @@ Policy 是业务安全边界。**LLM 不能替代 Policy。**
 - Durable Outbox
 - Voice Adapter（Input Adapter：ASR final → turns → TTS 念 `reply_text`）
 - ERPNext Adapter（Outbox `order.confirmed` → Draft Sales Order）
-- （V0.6 设计）ERPNext Read Adapter：装配层领域查询 → 本单投递状态投影；不进 Policy
+- （V0.6 已落地）ERPNext Read Adapter：装配层领域查询 → 本单投递状态投影；不进 Policy
 
 ---
 
@@ -164,7 +164,7 @@ Policy 是业务安全边界。**LLM 不能替代 Policy。**
 
 V0.5 已接写入：已确认销售事实经 Outbox 进入 ERPNext Draft Sales Order。
 
-V0.6 设计读取：员工看见账本，账本不指挥开单。见 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)。
+V0.6 已接读取：员工看见账本，账本不指挥开单。见 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)。
 
 正确：
 
@@ -198,9 +198,9 @@ Read：只问 `runtime_order_id` / `runtime_customer_id`；只投影 `pending | 
 
 当前目标：打造一个可靠的行业 AI 员工。第一个员工：农批 AI 开单员。
 
-V0.5 已增加 ERPNext Write Adapter；V0.6 只设计 Read Adapter。开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
+V0.6 已落地 Read Adapter 投影；开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 
-架构冻结评审（不写代码）：[RUNTIME_FREEZE_REVIEW.md](RUNTIME_FREEZE_REVIEW.md)、[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)。现网是可复用流水线，不是可复用平台；不替换为 LangGraph / CrewAI / AutoGen / Agents SDK。
+冻结清单：[RUNTIME_FREEZE.md](RUNTIME_FREEZE.md)。
 
 ---
 

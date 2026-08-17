@@ -22,7 +22,7 @@
 | [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md) | V0.4 Voice Adapter：架构、ASR/TTS 边界、PTT 状态机、turns 字段策略、Text/Voice 等价、真机脚本 |
 | [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Write Adapter：边界、Outbox 映射、Customer/Item/SO、Runtime vs ERP 事实、防腐 |
 | [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter：只读边界、领域查询、Context 白名单、Policy 隔离 |
-| [RUNTIME_FREEZE_REVIEW.md](RUNTIME_FREEZE_REVIEW.md) | v0.x 架构冻结评审：分层、通用 vs 销售专属、框架否决、多 Agent 隔离 |
+| [RUNTIME_FREEZE.md](RUNTIME_FREEZE.md) | Phase 1.5 冻结清单：已冻结层、扩展点、Adapter 边界、新员工复用 |
 | [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
@@ -1178,18 +1178,16 @@ Adapter 是新的 Outbox consumer（`app/erpnext/`）。读已确认 Session 快
 装配层 Domain Query → Read Adapter → 本单 posting（pending | posted | unavailable）
 ```
 
-Read Adapter 与 Write Adapter 同层、不同端口。Runtime 内核不查 ERP。事实进 Workbench / Session 投影，不进 `BusinessContext` / `OrderLine` / Memory。`query_draft` 仍只念 Runtime 草稿。禁止 SQL、DocType、库存、自动改单。本阶段不改 `reply_text`。
+Read Adapter 与 Write Adapter 同层、不同端口。Runtime 内核不查 ERP。事实进 Workbench / Session 投影，不进 `BusinessContext` / `OrderLine` / Memory。`query_draft` 仍只念 Runtime 草稿。禁止 SQL、DocType、库存、自动改单。本阶段不改 `reply_text`。已落地 `EnterpriseFactPort` + Fake 读 + HTTP 投影。
 
 细则 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)、[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)。
 
 禁止：改 Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory；ERP 驱动 AI；库存自动决策；自动改价；口播绕过 Policy。
 
-冻结：上列内核。允许新增 Read Adapter 与领域投影（实现另批）。
+冻结：上列内核。允许新增 Read Adapter 与领域投影。
 
-### 14.19 架构冻结评审（v0.x）
+### 14.19 Runtime Freeze（Phase 1.5）
 
-目标：判断现网是否已是可复用 AI Employee 基础。不是加功能。
+目标：把 v0.x 收口为稳定基础。不是加功能。
 
-结论：可复用的是流水线角色，不是 `OrderService`。不抽象平台，不换 Agent 框架，不深入 ERP 业务。下一阶段先按 V0.6 设计收口 Read 投影。
-
-细则 [RUNTIME_FREEZE_REVIEW.md](RUNTIME_FREEZE_REVIEW.md)、[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)。
+冻结清单：[RUNTIME_FREEZE.md](RUNTIME_FREEZE.md)。防火墙：`app/tests/test_architecture_firewall.py`。评审：[RUNTIME_FREEZE_REVIEW.md](RUNTIME_FREEZE_REVIEW.md)、[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)。

@@ -69,3 +69,11 @@ class ErpGateway(Protocol):
 
     def ensure_sales_order(self, draft: ErpSalesOrderDraft, *, customer: str, item_codes: dict[UUID, str]) -> str:
         """Return Sales Order name. Idempotent on runtime_order_id. Draft only."""
+
+
+class ErpReadGateway(Protocol):
+    def fetch_sales_order(self, runtime_order_id: UUID) -> dict | None:
+        """Return Adapter-internal SO dict or None. May raise ErpGatewayError."""
+
+    def list_draft_sales_orders(self, runtime_customer_id: UUID) -> list[dict]:
+        """Draft SOs for a mapped customer. May raise ErpGatewayError."""

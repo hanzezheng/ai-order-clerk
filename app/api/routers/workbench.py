@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.api.deps import get_world
 from app.bootstrap import AppWorld
+from app.erpnext.projection import attach_workbench_enterprise
 
 router = APIRouter(prefix="/v1", tags=["workbench"])
 
@@ -17,14 +18,14 @@ class CurrentTaskIn(BaseModel):
 
 @router.get("/workbench")
 def get_workbench(world: AppWorld = Depends(get_world)) -> dict:
-    return world.workbench.snapshot()
+    return attach_workbench_enterprise(world, world.workbench.snapshot())
 
 
 @router.post("/workbench/tasks", status_code=201)
 def create_task(world: AppWorld = Depends(get_world)) -> dict:
     session = world.intake.create_session()
     world.workbench.register(session, make_current=True)
-    return world.workbench.snapshot()
+    return attach_workbench_enterprise(world, world.workbench.snapshot())
 
 
 @router.post("/workbench/current")
@@ -33,4 +34,4 @@ def set_current(body: CurrentTaskIn, world: AppWorld = Depends(get_world)) -> di
         world.workbench.set_current(body.session_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="task_not_found") from exc
-    return world.workbench.snapshot()
+    return attach_workbench_enterprise(world, world.workbench.snapshot())

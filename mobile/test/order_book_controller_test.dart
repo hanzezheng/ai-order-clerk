@@ -77,11 +77,11 @@ void main() {
     expect(controller.phase, BookPhase.idle);
   });
 
-  test('没有系统听写时提示改打字', () async {
+  test('听写不可用时不假装开单', () async {
     final api = FakeClerkApi();
     final speech = SilentSpeechInput()
       ..isAvailable = false
-      ..lastError = '这台手机没有听写。把这句话打在下面。';
+      ..lastError = '听写还没准备好。把这句话打在下面。';
     final controller = OrderBookController(
       api: api,
       stall: const StallBinding(stallName: '3号档', apiBase: 'http://127.0.0.1:8000'),

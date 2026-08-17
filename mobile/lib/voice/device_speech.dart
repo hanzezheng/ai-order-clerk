@@ -1,16 +1,26 @@
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:speech_to_text/speech_to_text.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:record/record.dart';
+import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
+
+import 'asr_text.dart';
 import 'speech_ports.dart';
 
+/// 端侧 SenseVoice。一段按住 → 一条 final 文本。不依赖系统听写，不改 Runtime。
 class DeviceSpeechInput implements SpeechInput {
-  DeviceSpeechInput({SpeechToText? engine}) : _engine = engine ?? SpeechToText();
+  DeviceSpeechInput({AudioRecorder? recorder}) : _recorder = recorder ?? AudioRecorder();
 
-  final SpeechToText _engine;
+  final AudioRecorder _recorder;
+  sherpa.OfflineRecognizer? _recognizer;
   Future<void>? _startWork;
   var _prepared = false;
-  var _buffer = '';
+  static const _sampleRate = 16000;
 
   @override
   var isAvailable = false;
@@ -28,13 +38,29 @@ class DeviceSpeechInput implements SpeechInput {
       _prepared = true;
       return;
     }
-    isAvailable = await _engine.initialize(
-      onError: (error) {
-        lastError = _mapError(error.errorMsg);
-      },
-    );
-    if (!isAvailable) {
-      lastError = '这台手机没有听写。到系统设置打开语音识别，或把这句话打在下面。';
+    try {
+      sherpa.initBindings();
+      final modelDir = await _ensureModel();
+      _recognizer?.free();
+      _recognizer = sherpa.OfflineRecognizer(
+        sherpa.OfflineRecognizerConfig(
+          model: sherpa.OfflineModelConfig(
+            senseVoice: sherpa.OfflineSenseVoiceModelConfig(
+              model: p.join(modelDir, 'model.int8.onnx'),
+              language: '',
+              useInverseTextNormalization: true,
+            ),
+            tokens: p.join(modelDir, 'tokens.txt'),
+            numThreads: 2,
+            debug: false,
+            provider: 'cpu',
+          ),
+        ),
+      );
+      isAvailable = true;
+    } catch (_) {
+      isAvailable = false;
+      lastError = '听写还没准备好。请再打开一次，或把这句话打在下面。';
     }
     _prepared = true;
   }
@@ -44,29 +70,33 @@ class DeviceSpeechInput implements SpeechInput {
     if (!_prepared) {
       await prepare();
     }
-    _buffer = '';
     lastError = null;
     if (!isAvailable) {
       return;
     }
     final work = () async {
-      final localeId = await _chineseLocale();
-      await _engine.listen(
-        onResult: (result) {
-          _buffer = result.recognizedWords.trim();
-          if (_buffer.isNotEmpty) {
-            onPartial?.call(_buffer);
-          }
-        },
-        listenOptions: SpeechListenOptions(
-          localeId: localeId,
-          partialResults: true,
-          cancelOnError: false,
-          listenMode: ListenMode.dictation,
-          listenFor: const Duration(seconds: 60),
-          pauseFor: const Duration(seconds: 8),
+      final dir = await getTemporaryDirectory();
+      final path = p.join(dir.path, 'hold.pcm');
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+      await _recorder.start(
+        RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: _sampleRate,
+          numChannels: 1,
+          echoCancel: true,
+          noiseSuppress: true,
+          androidConfig: const AndroidRecordConfig(
+            useLegacy: false,
+            audioSource: AndroidAudioSource.mic,
+            manageBluetooth: false,
+          ),
         ),
+        path: path,
       );
+      onPartial?.call('正在听…');
     }();
     _startWork = work;
     await work;
@@ -79,42 +109,74 @@ class DeviceSpeechInput implements SpeechInput {
       await startWork;
     }
     _startWork = null;
-    if (_engine.isListening) {
-      await _engine.stop();
+    String path = '';
+    try {
+      path = (await _recorder.stop()) ?? '';
+    } catch (_) {
+      path = '';
     }
-    final text = _buffer.trim();
-    if (text.isEmpty && lastError == null) {
-      lastError = isAvailable ? '没听清，按住再说，或打在下面。' : '这台手机没有听写。把这句话打在下面。';
+    if (path.isEmpty) {
+      lastError ??= '没听清，按住再说。';
+      return '';
     }
-    return text;
-  }
-
-  Future<String?> _chineseLocale() async {
-    final locales = await _engine.locales();
-    for (final locale in locales) {
-      final id = locale.localeId.toLowerCase();
-      if (id.contains('zh') || id.contains('cmn') || id.endsWith('_cn') || id.contains('-cn')) {
-        return locale.localeId;
+    final recognizer = _recognizer;
+    if (recognizer == null) {
+      lastError = '听写还没准备好。请再打开一次。';
+      return '';
+    }
+    try {
+      final samples = await _pcm16ToFloat(path);
+      if (samples.length < _sampleRate ~/ 5) {
+        lastError = '按太短了，按住再说。';
+        return '';
       }
+      final stream = recognizer.createStream();
+      stream.acceptWaveform(samples: samples, sampleRate: _sampleRate);
+      recognizer.decode(stream);
+      final text = asrFinalText(recognizer.getResult(stream).text);
+      stream.free();
+      if (text.isEmpty) {
+        lastError = '没听清，按住再说。';
+      }
+      return text;
+    } catch (_) {
+      lastError = '这一句没听成字，按住再说。';
+      return '';
     }
-    return locales.isEmpty ? null : locales.first.localeId;
   }
 
-  String _mapError(String code) {
-    switch (code) {
-      case 'error_permission':
-        return '请允许麦克风，才能按住说话。';
-      case 'error_network':
-      case 'error_network_timeout':
-        return '听写要联网。网络通了再按住说。';
-      case 'error_speech_timeout':
-      case 'error_no_match':
-        return '没听清，按住再说，或打在下面。';
-      case 'error_audio':
-        return '麦克风不可用，换一只再试。';
-      default:
-        return '这台手机听写失败。把这句话打在下面。';
+  Future<String> _ensureModel() async {
+    final root = await getApplicationSupportDirectory();
+    final dir = Directory(p.join(root.path, 'asr'));
+    await dir.create(recursive: true);
+    await _copyAsset('assets/asr/tokens.txt', File(p.join(dir.path, 'tokens.txt')));
+    final onnx = File(p.join(dir.path, 'model.int8.onnx'));
+    if (!await onnx.exists() || await onnx.length() < 1024 * 1024) {
+      await _copyAsset('assets/asr/model.int8.onnx', onnx);
     }
+    if (!await onnx.exists() || await onnx.length() < 1024 * 1024) {
+      throw StateError('missing sensevoice model');
+    }
+    return dir.path;
+  }
+
+  Future<void> _copyAsset(String asset, File dest) async {
+    if (await dest.exists() && await dest.length() > 0) {
+      return;
+    }
+    final data = await rootBundle.load(asset);
+    await dest.writeAsBytes(data.buffer.asUint8List(), flush: true);
+  }
+
+  Future<Float32List> _pcm16ToFloat(String path) async {
+    final bytes = await File(path).readAsBytes();
+    final even = bytes.length - (bytes.length % 2);
+    final samples = Float32List(even ~/ 2);
+    final data = ByteData.sublistView(bytes, 0, even);
+    for (var i = 0; i < samples.length; i++) {
+      samples[i] = data.getInt16(i * 2, Endian.little) / 32768.0;
+    }
+    return samples;
   }
 }
 

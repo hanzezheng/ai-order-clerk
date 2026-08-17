@@ -50,5 +50,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](docs/V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md) | 开单员 V1 Pilot 反馈闭环（分类、失败模板、V1.1 或继续观察） |
 | [docs/V1_SALES_CLERK_PILOT_RUNBOOK.md](docs/V1_SALES_CLERK_PILOT_RUNBOOK.md) | 开单员 V1 Pilot 执行手册（第一档口当天、陪跑、扩大/观察/暂停） |
 | [docs/V1_SALES_CLERK_FLUTTER_APP.md](docs/V1_SALES_CLERK_FLUTTER_APP.md) | 开单员 V1 Flutter App（今日开单本、Voice First、档口绑定） |
+| [docs/V1_SALES_CLERK_CHINA_ASR.md](docs/V1_SALES_CLERK_CHINA_ASR.md) | 开单员 V1 端侧听写（SenseVoice，不依赖系统听写） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

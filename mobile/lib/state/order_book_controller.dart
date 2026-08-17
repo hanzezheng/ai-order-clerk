@@ -101,7 +101,7 @@ class OrderBookController extends ChangeNotifier {
     phase = BookPhase.listening;
     notifyListeners();
     if (!speech.isAvailable) {
-      errorText = speech.lastError ?? '这台手机没有听写。把这句话打在下面。';
+                    errorText = speech.lastError ?? '听写还没准备好。把这句话打在下面。';
       phase = BookPhase.idle;
       notifyListeners();
       return;
@@ -126,11 +126,13 @@ class OrderBookController extends ChangeNotifier {
       return;
     }
     _holdEpoch++;
+    overlay = '正在听成字…';
+    notifyListeners();
     final text = (await speech.stop()).trim();
     overlay = text;
     notifyListeners();
     if (text.isEmpty) {
-      errorText = speech.lastError ?? '没听清，按住再说，或打在下面。';
+      errorText = speech.lastError ?? '没听清，按住再说。';
       phase = BookPhase.idle;
       notifyListeners();
       return;

@@ -6,7 +6,7 @@
 Flutter App → HTTP API → AI Employee Runtime（不改）→ ERPNext Adapter
 ```
 
-规格：[docs/V1_SALES_CLERK_FLUTTER_APP.md](../docs/V1_SALES_CLERK_FLUTTER_APP.md)。决策：[ADR-037](../docs/ADR/ADR-037-v1-flutter-app.md)。
+规格：[docs/V1_SALES_CLERK_FLUTTER_APP.md](../docs/V1_SALES_CLERK_FLUTTER_APP.md)。听写：[docs/V1_SALES_CLERK_CHINA_ASR.md](../docs/V1_SALES_CLERK_CHINA_ASR.md)。
 
 本目录只做 Input / 工作台壳。不改 Runtime，不做库存 / 财务 / 支付 / CRM。
 
@@ -27,11 +27,12 @@ flutter test
 flutter run --dart-define=API_BASE=http://127.0.0.1:8000
 ```
 
-Android 模拟器把 API 写成 `http://10.0.2.2:8000`。第一次打开先填档口名（一个老板对应一个档口，存在本机）。听不清或这台手机没有系统听写时，把那一句打在「听不清就打这句」。
+Android 模拟器把 API 写成 `http://10.0.2.2:8000`。第一次打开先填档口名。按住说话走端侧 SenseVoice，不依赖系统听写。听不清可以把那一句打在「听不清就打这句」。
 
-打 APK（真机 Android 7.0+）：
+打 APK 前先拉模型（约 229MB，不进 git）：
 
 ```bash
+./scripts/fetch_sensevoice_model.sh
 cd mobile
 flutter build apk --release --target-platform android-arm64
 ```

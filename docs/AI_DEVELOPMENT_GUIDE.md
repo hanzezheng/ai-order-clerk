@@ -259,7 +259,7 @@ Domain → Service → Policy → Persistence
 评审六问：见架构文 §7。
 ```
 
-当前阶段：不是把 ERP 逻辑放进 Runtime、不是做多 Agent、不是做平台。目标是农批 AI 销售开单员 V1 Flutter App（[V1_SALES_CLERK_FLUTTER_APP.md](V1_SALES_CLERK_FLUTTER_APP.md)）：老板手机壳；Voice First；确认仍走现有 turns。只允许改 Flutter 壳与 API 契约测试。ERP 读写都只经 Adapter。
+当前阶段：不是把 ERP 逻辑放进 Runtime、不是做多 Agent、不是做平台。目标是农批 AI 销售开单员 V1 端侧听写（[V1_SALES_CLERK_CHINA_ASR.md](V1_SALES_CLERK_CHINA_ASR.md)）：sherpa-onnx SenseVoice；只允许改 Flutter ASR Port。ERP 读写都只经 Adapter。
 
 不确定一层归属时，优先冻结 Runtime。
 

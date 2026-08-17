@@ -32,6 +32,7 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/AI_DEVELOPMENT_GUIDE.md](docs/AI_DEVELOPMENT_GUIDE.md) | Cursor 正式开发 Master Prompt |
 | [docs/VALIDATION.md](docs/VALIDATION.md) | 行为迁移实验与 6B 进入条件 |
 | [docs/V04_VOICE_ADAPTER.md](docs/V04_VOICE_ADAPTER.md) | V0.4 语音壳设计（Adapter，不改内核） |
-| [docs/V05_ERPNEXT_ADAPTER.md](docs/V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Adapter 设计（Outbox → ERP，不改内核） |
+| [docs/V05_ERPNEXT_ADAPTER.md](docs/V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Write Adapter（Outbox → ERP，不改内核） |
+| [docs/V06_ERPNEXT_READ_ADAPTER.md](docs/V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter 设计（领域查询 → 投影，不改内核） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

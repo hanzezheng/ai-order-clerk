@@ -28,3 +28,12 @@ flutter run --dart-define=API_BASE=http://127.0.0.1:8000
 ```
 
 Android 模拟器把 API 写成 `http://10.0.2.2:8000`。第一次打开先填档口名（一个老板对应一个档口，存在本机）。
+
+打 APK（真机 Android 7.0+）：
+
+```bash
+cd mobile
+flutter build apk --release --target-platform android-arm64
+```
+
+产物：`build/app/outputs/flutter-apk/app-release.apk`。真机第一次打开时把「开单服务地址」填成电脑局域网 IP，例如 `http://192.168.1.23:8000`。

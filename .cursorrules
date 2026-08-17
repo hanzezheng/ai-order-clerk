@@ -4,7 +4,7 @@
 
 ## 设计依据
 
-0. `docs/AI_EMPLOYEE_ARCHITECTURE.md` 是后续所有开发决策的**最高架构约束**（分层、LLM 权限、Policy/Memory 冻结、ERP 只经 Outbox Adapter）。每个 Sprint / PR 开头必须声明：遵守该文件、本 Sprint 只允许修改哪一层。禁止只写「做 Sprint X」。设计评审必须回答该文件 §7 六问。
+0. `docs/AI_EMPLOYEE_ARCHITECTURE.md` 是后续所有开发决策的**最高架构约束**（分层、LLM 权限、Policy/Memory 冻结、ERP 只经 Adapter：写走 Outbox、读走领域查询）。每个 Sprint / PR 开头必须声明：遵守该文件、本 Sprint 只允许修改哪一层。禁止只写「做 Sprint X」。设计评审必须回答该文件 §7 六问。
 1. `docs/DESIGN.md` 是农批开单员的产品设计细则。实现、重构、加字段前必须先读对应章节。与架构文冲突时：先守分层与权限，再改 DESIGN。
 2. 修改核心架构之前：必须先修改架构文和/或 `docs/DESIGN.md`，再改代码。发现设计缺陷同样：先文档，后代码。
 3. 不允许为了快速实现破坏领域模型（禁止扁平 SKU、单意图、全局唯一客户名、澄清即停图等捷径当成长期架构）。
@@ -21,7 +21,14 @@
 Agent → Tool → Service → Repository → Database
 ```
 
-接 ERP 只能：`Domain Event → Outbox → ERPNext Adapter`。禁止 Domain Service 直调 ERP API。Runtime 不读 ERP 表，ERP 失败不得改确认结果。
+接 ERP 只能：
+
+```
+写：Domain Event → Outbox → Write Adapter
+读：装配层 Domain Query → Read Adapter → 领域事实投影
+```
+
+禁止 Domain Service / Policy 直调 ERP API。禁止 SQL / DocType 进入 Runtime。Runtime 不读 ERP 表，ERP 失败不得改确认结果。
 
 ## 上下文与记忆
 

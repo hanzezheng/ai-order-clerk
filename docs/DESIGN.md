@@ -11,7 +11,7 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| [AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md) | **最高架构约束**：AI Employee Runtime 分层、冻结边界、ERP 经 Outbox、评审六问、Sprint 开场模板 |
+| [AI_EMPLOYEE_ARCHITECTURE.md](AI_EMPLOYEE_ARCHITECTURE.md) | **最高架构约束**：AI Employee Runtime 分层、冻结边界、ERP 经 Adapter、评审六问、Sprint 开场模板 |
 | [ROADMAP.md](ROADMAP.md) | 产品阶段 |
 | [DOMAIN.md](DOMAIN.md) | 农批业务知识 |
 | [AI_RULES.md](AI_RULES.md) | Agent 行为规范 |
@@ -20,8 +20,9 @@
 | [LANGUAGE_BENCHMARK.md](LANGUAGE_BENCHMARK.md) | V0.3C 农批语言分层评测、商品理解缺口、复杂订单金脚本、V0.4 准入 |
 | [MODEL_EVAL.md](MODEL_EVAL.md) | V0.3D 真模型评测：接入、运行、Fake 对照、Prompt 版本、指标与失败记录 |
 | [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md) | V0.4 Voice Adapter：架构、ASR/TTS 边界、PTT 状态机、turns 字段策略、Text/Voice 等价、真机脚本 |
-| [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Adapter：边界、Outbox 映射、Customer/Item/SO、Runtime vs ERP 事实、防腐 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md) |
+| [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Write Adapter：边界、Outbox 映射、Customer/Item/SO、Runtime vs ERP 事实、防腐 |
+| [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter：只读边界、领域查询、Context 白名单、Policy 隔离 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -877,6 +878,7 @@ Evidence：可用 `delta` 调整当前净 `count`（禁止为负）。同时累�
 8o. V0.3D 真模型评测：同一 `LLMTurnParser` 入口跑 live；Qwen/GPT 只换兼容端点。默认 CI 不发请求。冻结 Resolver / Policy / OrderService / Memory / Response / Outbox。见 [MODEL_EVAL.md](MODEL_EVAL.md)。  
 8p. V0.4 Voice Adapter：ASR final → 现有 turns → TTS 念 `reply_text`。不改 Parser / Understanding / Resolver / Policy / Confirm Gate / OrderService / Memory / Response。见 [V04_VOICE_ADAPTER.md](V04_VOICE_ADAPTER.md)。  
 8q. V0.5 ERPNext Adapter：Outbox `order.confirmed` → Customer / Item / Draft Sales Order。不改闸门，不扣库存，不收款。见 [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)。  
+8r. V0.6 ERPNext Read Adapter：装配层领域查询 → 本单投递状态投影。不改闸门，不读库存，不改口播。见 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)。  
 9. LangGraph：`extract_acts` 一次 LLM + batch_resolve  
 10. Extractor 闸门  
 11. outbox 事件 + 各 Port NoOp  
@@ -1166,3 +1168,19 @@ Adapter 是新的 Outbox consumer（`app/erpnext/`）。读已确认 Session 快
 禁止：改 Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory；ERP 驱动 AI；库存；支付；财务过账。
 
 冻结：上列内核。允许新增 `app/erpnext/` 与 Fake Gateway。
+
+### 14.18 ERPNext Read Adapter（V0.6）
+
+目标：让 AI 员工读取企业事实。不是让 ERP 指挥开单，不改闸门。
+
+```text
+装配层 Domain Query → Read Adapter → 本单 posting（pending | posted | unavailable）
+```
+
+Read Adapter 与 Write Adapter 同层、不同端口。Runtime 内核不查 ERP。事实进 Workbench / Session 投影，不进 `BusinessContext` / `OrderLine` / Memory。`query_draft` 仍只念 Runtime 草稿。禁止 SQL、DocType、库存、自动改单。本阶段不改 `reply_text`。
+
+细则 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)、[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)。
+
+禁止：改 Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate / OrderService / Memory；ERP 驱动 AI；库存自动决策；自动改价；口播绕过 Policy。
+
+冻结：上列内核。允许新增 Read Adapter 与领域投影（实现另批）。

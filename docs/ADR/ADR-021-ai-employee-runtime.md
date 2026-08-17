@@ -17,7 +17,7 @@
 
 1. `docs/AI_EMPLOYEE_ARCHITECTURE.md` 是后续开发的**最高架构约束**。Cursor 规则（`.cursorrules`、`.cursor/rules/ai-employee-architecture.mdc`）必须引用它。
 2. [DESIGN.md](../DESIGN.md) 仍是农批开单员的产品设计细则；与本架构冲突时，先守分层与 LLM/Policy/Memory 权限，再改 DESIGN。
-3. ERPNext 是事实系统；连接路径固定为 `Domain Event → Outbox → ERPNext Adapter`。禁止 Domain Service 直调 ERP API。V0.5 设计见 [V05_ERPNEXT_ADAPTER.md](../V05_ERPNEXT_ADAPTER.md)；实现不得进入 Runtime 裁决层。
+3. ERPNext 是事实系统。写：`Domain Event → Outbox → Write Adapter`。读：装配层领域查询 → Read Adapter。禁止 Domain Service / Policy 直调 ERP API。V0.5 见 [V05_ERPNEXT_ADAPTER.md](../V05_ERPNEXT_ADAPTER.md)；V0.6 读设计见 [V06_ERPNEXT_READ_ADAPTER.md](../V06_ERPNEXT_READ_ADAPTER.md)。实现不得进入 Runtime 裁决层。
 4. 每个 Sprint / PR 必须声明：遵守本架构、只允许修改哪一层、冻结哪些层。禁止只写「做 Sprint X」。
 5. 设计评审必须回答架构文 §7 六问。不确定则冻结 Runtime。
 

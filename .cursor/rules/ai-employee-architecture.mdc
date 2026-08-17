@@ -14,7 +14,8 @@ alwaysApply: true
 ```text
 Input Adapter → Turn Intake → Parser → Product Understanding
   → Resolver → Policy → Domain Service → Event → Outbox
-  → Memory | ERPNext Adapter
+  → Memory | ERPNext Write Adapter
+装配层 Domain Query → ERPNext Read Adapter
 ```
 
 - Parser 只理解语言，禁止选客户 / 选 SKU / 定价 / 写 Memory / 判断 Confirm。
@@ -23,7 +24,7 @@ Input Adapter → Turn Intake → Parser → Product Understanding
 - Policy 是业务安全边界；LLM 不能替代或绕过。
 - Memory 只从确认后的结构化事件学习，禁止 `user_text`、禁止 LLM 直写。
 - `SalesSession` = 一张订单；禁止聊天记录、禁止跨单上下文。
-- 接 ERP 只能：`Event → Outbox → Adapter`。禁止 `OrderService` 直调 ERP API。
+- 写 ERP：`Event → Outbox → Write Adapter`。读 ERP：装配层领域查询 → Read Adapter。禁止 `OrderService` / Policy 直调 ERP API，禁止 SQL/DocType 进 Runtime。
 
 ## 每个 Sprint / PR 开头必须声明
 
@@ -44,4 +45,4 @@ Input Adapter → Turn Intake → Parser → Product Understanding
 5. 是否应该通过 Event 连接？
 6. 是否属于 ERPNext Adapter，而不是 Runtime？
 
-不确定时优先冻结 Runtime。当前不做 ERP、不做多 Agent、不做平台。
+不确定时优先冻结 Runtime。当前不做库存/支付/财务过账、不做多 Agent、不做平台。

@@ -74,8 +74,10 @@ Outbox
         +----------------+
         |                |
         v                v
-     Memory         ERPNext Adapter
-     （学习）         （业务系统）
+     Memory         ERPNext Write Adapter
+     （学习）         （Outbox → 账本）
+
+装配层 Domain Query → ERPNext Read Adapter → 领域事实投影
 ```
 
 | 层 | 职责 | 禁止 |
@@ -88,7 +90,8 @@ Outbox
 | Policy | **业务裁决**：客户/商品歧义、Confirm Gate、是否询问 | 被 LLM 替代或绕过 |
 | Domain Service | 执行开单、改单、确认 | 直接调 ERP API |
 | Memory | 从确认后的结构化事件学习 | `user_text` 学习、LLM 直接写 |
-| ERPNext Adapter | 消费 Outbox，写入 ERP | 反向把 ERP 表结构泄漏进 Runtime |
+| ERPNext Write Adapter | 消费 Outbox，写入 ERP | Domain Service 直调 ERP API |
+| ERPNext Read Adapter | 领域查询 → 账本事实投影 | SQL/DocType 进 Runtime；用库存/信用指挥 Policy |
 
 Policy 是业务安全边界。**LLM 不能替代 Policy。**
 
@@ -113,6 +116,7 @@ Policy 是业务安全边界。**LLM 不能替代 Policy。**
 - Durable Outbox
 - Voice Adapter（Input Adapter：ASR final → turns → TTS 念 `reply_text`）
 - ERPNext Adapter（Outbox `order.confirmed` → Draft Sales Order）
+- （V0.6 设计）ERPNext Read Adapter：装配层领域查询 → 本单投递状态投影；不进 Policy
 
 ---
 
@@ -158,23 +162,29 @@ Policy 是业务安全边界。**LLM 不能替代 Policy。**
 
 ## 5. ERPNext 关系
 
-V0.5 已接：已确认销售事实经 Outbox 进入 ERPNext Draft Sales Order。
+V0.5 已接写入：已确认销售事实经 Outbox 进入 ERPNext Draft Sales Order。
+
+V0.6 设计读取：员工看见账本，账本不指挥开单。见 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)。
 
 正确：
 
 ```text
-Domain Event → Outbox → ERPNext Adapter → ERPNext
+写：Domain Event → Outbox → Write Adapter → ERPNext
+读：装配层 Domain Query → Read Adapter → 领域事实投影
 ```
 
 错误：
 
 ```text
-OrderService → 直接调用 ERP API
+OrderService / Policy / Parser → 直接调用 ERP API / SQL / DocType
+confirm_gate ← 库存 / 信用 / Price List
 ```
 
 AI Runtime **不依赖** ERPNext 表结构。
 
-V0.5 Adapter（[V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)）：只消费 `order.confirmed`，写 Draft Sales Order。实现不得进入 Parser / Policy / OrderService / Memory。当前仍不把 ERP 逻辑塞进 Runtime，不做库存/支付/财务。
+Write（[V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)）：只消费 `order.confirmed`，写 Draft Sales Order。
+
+Read：只问 `runtime_order_id` / `runtime_customer_id`；只投影 `pending | posted | unavailable`。不得进入 Parser / Policy / OrderService / Memory。不做库存/支付/财务，不改口播。
 
 ---
 
@@ -188,7 +198,7 @@ V0.5 Adapter（[V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md)）：只消费 `
 
 当前目标：打造一个可靠的行业 AI 员工。第一个员工：农批 AI 开单员。
 
-V0.5 已增加 ERPNext Adapter 层；开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
+V0.5 已增加 ERPNext Write Adapter；V0.6 只设计 Read Adapter。开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 
 ---
 
@@ -218,11 +228,11 @@ V0.5 已增加 ERPNext Adapter 层；开单裁决仍全部在 Runtime。不做�
 评审六问：见 §7。
 ```
 
-示例（V0.5 ERPNext Adapter）：
+示例（V0.6 ERPNext Read Adapter）：
 
 ```text
 当前遵守 docs/AI_EMPLOYEE_ARCHITECTURE.md。
-本 Sprint 只允许修改：ERPNext Adapter。
+本 Sprint 只允许修改：ERPNext Read Adapter（设计文档）。
 禁止修改：Parser / ProductUnderstanding / Resolver / Policy / Confirm Gate /
          OrderService / Memory。
 ```

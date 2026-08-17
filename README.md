@@ -20,6 +20,8 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 打开 http://127.0.0.1:8000/ 。今日开单本：按住说话（或点例子）开李老板的单、改量、好了。口播只展示后端 `reply_text`。自然语言只走 `POST /v1/sessions/{id}/turns`。调试时间线：`http://127.0.0.1:8000/?dev=1`。
 
+老板手机端在 `mobile/`（Flutter 今日开单本）。只调现有 HTTP，不改 Runtime。规格见 [docs/V1_SALES_CLERK_FLUTTER_APP.md](docs/V1_SALES_CLERK_FLUTTER_APP.md)。
+
 ## 文档
 
 | 文件 | 说明 |
@@ -47,5 +49,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V1_SALES_CLERK_PILOT_ONBOARDING.md](docs/V1_SALES_CLERK_PILOT_ONBOARDING.md) | 开单员 V1 Pilot 接入（空白档口到第一单、扩大或暂停） |
 | [docs/V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](docs/V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md) | 开单员 V1 Pilot 反馈闭环（分类、失败模板、V1.1 或继续观察） |
 | [docs/V1_SALES_CLERK_PILOT_RUNBOOK.md](docs/V1_SALES_CLERK_PILOT_RUNBOOK.md) | 开单员 V1 Pilot 执行手册（第一档口当天、陪跑、扩大/观察/暂停） |
+| [docs/V1_SALES_CLERK_FLUTTER_APP.md](docs/V1_SALES_CLERK_FLUTTER_APP.md) | 开单员 V1 Flutter App（今日开单本、Voice First、档口绑定） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

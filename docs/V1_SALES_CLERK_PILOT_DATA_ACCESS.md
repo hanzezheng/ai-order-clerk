@@ -6,7 +6,7 @@
 >
 > **不是做 CRM。不是做 ERP 替代。不是新增业务能力。不新增 Agent。不引入库存 / 支付 / 财务。不改 Runtime 核心 / Confirm Gate。**
 >
-> 要哪些事实见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。投递状态读路径见 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)。决策见 [ADR-033](ADR/ADR-033-v1-pilot-data-access.md)。
+> 要哪些事实见 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。投递状态读路径见 [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md)。接入见 [V1_SALES_CLERK_PILOT_ONBOARDING.md](V1_SALES_CLERK_PILOT_ONBOARDING.md)。决策见 [ADR-033](ADR/ADR-033-v1-pilot-data-access.md)。
 
 数据边界回答：摊前准备哪些企业事实。本文回答：**这些事实怎样进入 AI Employee Runtime。**
 

@@ -198,7 +198,7 @@ Read：只问 `runtime_order_id` / `runtime_customer_id`；只投影 `pending | 
 
 当前目标：打造一个可靠的行业 AI 员工。第一个员工：农批 AI 开单员。
 
-Runtime 已收口。当前产品阶段是 **农批 AI 销售开单员 V1 Pilot 观察**：档口试用记账，判断 V1.1 或改流程。表 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)。
+Runtime 已收口。当前产品阶段是 **农批 AI 销售开单员 V1 Pilot 数据边界**：摊前准备最小企业事实，缺则问老板。表 [V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md](V1_SALES_CLERK_PILOT_DATA_BOUNDARY.md)。
 
 V0.6 已落地 Read Adapter 投影；开单裁决仍全部在 Runtime。不做库存、支付、财务过账。
 

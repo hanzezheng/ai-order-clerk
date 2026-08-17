@@ -9,7 +9,7 @@
 
 [V1_SALES_CLERK.md](../V1_SALES_CLERK.md) 已定义开单员岗位与一天六步。产品化若没有用户旅程，容易把工作台做成 ERP 列表，或让语音按客户名在多张单之间自动跳转。
 
-用户旅程：[V1_SALES_CLERK_USER_JOURNEY.md](../V1_SALES_CLERK_USER_JOURNEY.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+用户旅程：[V1_SALES_CLERK_USER_JOURNEY.md](../V1_SALES_CLERK_USER_JOURNEY.md)。工作台原型：[V1_SALES_CLERK_WORKBENCH.md](../V1_SALES_CLERK_WORKBENCH.md)、[ADR-028](ADR-028-v1-workbench-order-book.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

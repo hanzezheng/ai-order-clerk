@@ -6,7 +6,7 @@
 >
 > **不写代码，不新增 Employee，不引入库存 / 支付 / 财务，不把 ERP 变成 AI 决策层。**
 >
-> 岗位能力评审见 [SALES_EMPLOYEE_CAPABILITY.md](SALES_EMPLOYEE_CAPABILITY.md)。决策见 [ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)。用户旅程（产品化）见 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)。
+> 岗位能力评审见 [SALES_EMPLOYEE_CAPABILITY.md](SALES_EMPLOYEE_CAPABILITY.md)。决策见 [ADR-026](ADR/ADR-026-v1-sales-clerk-product.md)。用户旅程（产品化）见 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)。工作台原型见 [V1_SALES_CLERK_WORKBENCH.md](V1_SALES_CLERK_WORKBENCH.md)。
 
 本文把第一个商业员工收成可雇规格：**农批 AI 销售开单员 V1**。
 

@@ -10,7 +10,7 @@
 
 第一个员工岗位名：**农批档口开单员**。不是档口经理，不是会计，不是仓管。
 
-可雇版本规格：[V1_SALES_CLERK.md](V1_SALES_CLERK.md)（一天六步、AI/人工分工、必须产品化与明确不做）。
+可雇版本规格：[V1_SALES_CLERK.md](V1_SALES_CLERK.md)。产品化用户旅程：[V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)。
 
 ---
 
@@ -142,7 +142,7 @@
 
 ### 阶段 A — 开单岗可雇
 
-目标：农批老板肯把「接单」交给这个伙计。即 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)。
+目标：农批老板肯把「接单」交给这个伙计。即 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)。一天怎么用见 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)。
 
 - 真机语音走现有 turns（Input）
 - 工作台就是今日开单本（投影，不新 Agent）

@@ -11,7 +11,7 @@ Runtime、Voice、ERPNext 读写、Memory、Workbench 已收口。岗位评审 [
 
 下一步若没有产品规格，容易把「V1」理解成再加功能：查账口令、确认后改单、库存挡确认、或开始做收款员。
 
-产品规格：[V1_SALES_CLERK.md](../V1_SALES_CLERK.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+产品规格：[V1_SALES_CLERK.md](../V1_SALES_CLERK.md)。用户旅程：[V1_SALES_CLERK_USER_JOURNEY.md](../V1_SALES_CLERK_USER_JOURNEY.md)、[ADR-027](ADR-027-v1-user-journey-current-order.md)。服从 [RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

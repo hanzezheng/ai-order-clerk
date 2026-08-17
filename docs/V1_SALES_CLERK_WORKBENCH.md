@@ -6,7 +6,7 @@
 >
 > **不写代码。不新增 Agent。不引入库存 / 支付 / 财务。不改变 Confirm Gate。不把系统做成 ERP 前端。**
 >
-> 岗位规格 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)。用户旅程 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)。决策见 [ADR-028](ADR/ADR-028-v1-workbench-order-book.md)。
+> 岗位规格 [V1_SALES_CLERK.md](V1_SALES_CLERK.md)。用户旅程 [V1_SALES_CLERK_USER_JOURNEY.md](V1_SALES_CLERK_USER_JOURNEY.md)。决策见 [ADR-028](ADR/ADR-028-v1-workbench-order-book.md)。垂直切片 [V1_SALES_CLERK_VERTICAL_SLICE.md](V1_SALES_CLERK_VERTICAL_SLICE.md)。
 
 本文把「今日开单本」从概念收成 **老板每天打开的那一页**：看得见、按得住、喊得动。不是再做一个内核，也不是把 ERP 搬到手机上。
 

@@ -34,6 +34,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V04_VOICE_ADAPTER.md](docs/V04_VOICE_ADAPTER.md) | V0.4 语音壳设计（Adapter，不改内核） |
 | [docs/V05_ERPNEXT_ADAPTER.md](docs/V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Write Adapter（Outbox → ERP，不改内核） |
 | [docs/V06_ERPNEXT_READ_ADAPTER.md](docs/V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter 设计（领域查询 → 投影，不改内核） |
-| [docs/RUNTIME_FREEZE_REVIEW.md](docs/RUNTIME_FREEZE_REVIEW.md) | v0.x 架构冻结评审（流水线可复用，不是平台） |
+| [docs/RUNTIME_FREEZE.md](docs/RUNTIME_FREEZE.md) | v0.x Runtime 冻结清单（Phase 1.5 收口） |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |

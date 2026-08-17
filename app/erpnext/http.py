@@ -128,6 +128,51 @@ class HttpErpGateway:
         self.maps.put_order(draft.runtime_order_id, mapped)
         return mapped
 
+    def fetch_sales_order(self, runtime_order_id: UUID) -> dict | None:
+        found = self.maps.order(runtime_order_id) or self._find(
+            SALES_ORDER_DOCTYPE, "runtime_order_id", str(runtime_order_id)
+        )
+        if not found:
+            return None
+        request = Request(
+            f"{self.url}/api/resource/{SALES_ORDER_DOCTYPE}/{found}",
+            headers=self._headers(),
+            method="GET",
+        )
+        body = self._call(request)
+        data = body.get("data") if isinstance(body, dict) else None
+        if isinstance(data, dict):
+            if self.maps.order(runtime_order_id) is None:
+                self.maps.put_order(runtime_order_id, str(data.get("name") or found))
+            return data
+        return None
+
+    def list_draft_sales_orders(self, runtime_customer_id: UUID) -> list[dict]:
+        customer = self.maps.customer(runtime_customer_id)
+        if not customer:
+            return []
+        query = urlencode(
+            {
+                "filters": json.dumps(
+                    [
+                        [SALES_ORDER_DOCTYPE, "customer", "=", customer],
+                        [SALES_ORDER_DOCTYPE, "docstatus", "=", 0],
+                    ]
+                )
+            }
+        )
+        request = Request(
+            f"{self.url}/api/resource/{SALES_ORDER_DOCTYPE}?{query}",
+            headers=self._headers(),
+            method="GET",
+        )
+        body = self._call(request)
+        data = body.get("data") if isinstance(body, dict) else None
+        if isinstance(data, list):
+            return [row for row in data if isinstance(row, dict)]
+        return []
+
+
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json; charset=utf-8", "Accept": "application/json"}
         if self.api_key and self.api_secret:

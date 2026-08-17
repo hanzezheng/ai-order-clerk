@@ -2,7 +2,7 @@
 
 标题：ERPNext 读取只经 Read Adapter 的领域查询；禁止 SQL/DocType 进 Runtime，禁止用账本指挥 Policy
 
-- 状态：proposed
+- 状态：accepted
 - 日期：2026-08-17
 
 ## 背景

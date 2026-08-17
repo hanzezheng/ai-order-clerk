@@ -6,7 +6,7 @@
 >
 > **不加功能。不新增 Agent。不引入库存 / 支付 / 财务。不扩展 ERP。不改 Confirm Gate。**
 >
-> P0 闭环 [V1_SALES_CLERK_VERTICAL_SLICE.md](V1_SALES_CLERK_VERTICAL_SLICE.md)。工作台 [V1_SALES_CLERK_WORKBENCH.md](V1_SALES_CLERK_WORKBENCH.md)。决策见 [ADR-030](ADR/ADR-030-v1-pilot-hardening.md)。
+> P0 闭环 [V1_SALES_CLERK_VERTICAL_SLICE.md](V1_SALES_CLERK_VERTICAL_SLICE.md)。工作台 [V1_SALES_CLERK_WORKBENCH.md](V1_SALES_CLERK_WORKBENCH.md)。决策见 [ADR-030](ADR/ADR-030-v1-pilot-hardening.md)。观察表见 [V1_SALES_CLERK_PILOT_OBSERVATION.md](V1_SALES_CLERK_PILOT_OBSERVATION.md)。
 
 PR40 已证明：老板可以完成 **一分钟开单闭环**。本文件回答下一问：
 

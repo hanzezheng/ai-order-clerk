@@ -22,7 +22,7 @@ Sales Employee V1 能否进入真实档口测试？Pilot 成功看什么？
 3. 异常必须演：同名必问（种子用两个王老板）、无档案苹果挂起、换客不串单、网络失败状态清楚、ERP 失败则已确认但入账异常。
 4. Demo 金脚本只验证体验；真实模式走完整 Runtime，关闭口令映射。
 5. 成功标准：少手写、少重复确认、少翻聊天找单。
-6. **可以进入有监督的档口 Pilot。不可以宣称无人值守已可雇。**
+6. **可以进入有监督的档口 Pilot。不可以宣称无人值守已可雇。** 试班记录：[V1_SALES_CLERK_PILOT_OBSERVATION.md](../V1_SALES_CLERK_PILOT_OBSERVATION.md)、[ADR-031](ADR-031-v1-pilot-observation.md)。
 
 ## 原因
 

@@ -9,7 +9,7 @@
 
 观察表已规定记什么。若反馈不分类、失败不处理、把「功能愿望」当成迭代依据，试班会变成加功能，或过早开工 V1.1。
 
-闭环：[V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md](../V1_SALES_CLERK_PILOT_FEEDBACK_LOOP.md)。服从 [ADR-031](ADR-031-v1-pilot-observation.md)、[ADR-034](ADR-034-v1-pilot-onboarding.md)、[RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
+手册：[V1_SALES_CLERK_PILOT_RUNBOOK.md](../V1_SALES_CLERK_PILOT_RUNBOOK.md)、[ADR-036](ADR-036-v1-pilot-runbook.md)。服从 [ADR-031](ADR-031-v1-pilot-observation.md)、[ADR-034](ADR-034-v1-pilot-onboarding.md)、[RUNTIME_FREEZE.md](../RUNTIME_FREEZE.md)。
 
 ## 问题
 

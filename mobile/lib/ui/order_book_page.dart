@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api/models.dart';
 import '../state/order_book_controller.dart';
@@ -35,6 +36,37 @@ class _OrderBookPageState extends State<OrderBookPage> {
   @override
   Widget build(BuildContext context) {
     final c = widget.controller;
+    if (c.offline) {
+      return Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('今日开单', style: Theme.of(context).textTheme.headlineLarge),
+                const SizedBox(height: 16),
+                Text(c.errorText, style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 12),
+                const Text(
+                  '先在电脑上打开「启动开单」。手机和电脑要在同一个 Wi-Fi。',
+                  style: TextStyle(fontSize: 18, color: Color(0xFF5C675E), height: 1.4),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: c.bootstrap,
+                    child: const Text('再试一次', style: TextStyle(fontSize: 20)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final draft = c.currentDraft;
     return Scaffold(
       body: SafeArea(
@@ -295,7 +327,12 @@ class _DockState extends State<_Dock> {
                   Expanded(
                     child: Listener(
                       behavior: HitTestBehavior.opaque,
-                      onPointerDown: busy ? null : (_) => controller.beginHold(),
+                      onPointerDown: busy
+                          ? null
+                          : (_) {
+                              HapticFeedback.mediumImpact();
+                              controller.beginHold();
+                            },
                       onPointerUp: busy ? null : (_) => controller.endHold(),
                       onPointerCancel: busy ? null : (_) => controller.endHold(),
                       child: Container(

@@ -6,6 +6,10 @@ Voice-first 农批开单员：老板连续自然语言开单，Agent 维护客�
 
 需要 **Python 3.12+**（3.9 无法安装）。
 
+电脑上双击 `启动开单.bat`。浏览器会打开今日开单本；手机打开「今日开单」App，会自动连上这台电脑（同一 Wi-Fi）。
+
+开发安装：
+
 ```bash
 python3 -m pip install -e '.[dev]'
 python3 -m pytest -q

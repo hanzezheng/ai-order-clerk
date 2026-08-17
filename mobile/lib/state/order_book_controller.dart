@@ -29,6 +29,7 @@ class OrderBookController extends ChangeNotifier {
   String replyText = '';
   String errorText = '';
   String overlay = '';
+  var offline = false;
   int _seq = 0;
   int _holdEpoch = 0;
 
@@ -49,11 +50,21 @@ class OrderBookController extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     errorText = '';
-    await Future.wait([refresh(), speech.prepare()]);
-    if (currentSessionId == null) {
-      await startNextOrder();
-    } else {
-      await _loadCurrentDraft();
+    offline = false;
+    notifyListeners();
+    await speech.prepare();
+    try {
+      await refresh();
+      if (currentSessionId == null) {
+        await startNextOrder();
+      } else {
+        await _loadCurrentDraft();
+      }
+    } catch (_) {
+      offline = true;
+      errorText = '电脑上的开单服务还没打开。打开后再试。';
+      notifyListeners();
+      return;
     }
     if (!speech.isAvailable && (speech.lastError ?? '').isNotEmpty) {
       errorText = speech.lastError!;
@@ -86,7 +97,7 @@ class OrderBookController extends ChangeNotifier {
   }
 
   Future<void> beginHold() async {
-    if (phase == BookPhase.processing) {
+    if (phase == BookPhase.processing || offline) {
       return;
     }
     final epoch = ++_holdEpoch;

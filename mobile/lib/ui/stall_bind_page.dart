@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../stall/stall_binding.dart';
 
 class StallBindPage extends StatefulWidget {
-  const StallBindPage({super.key, required this.onBound, this.initialApiBase = 'http://127.0.0.1:8000'});
+  const StallBindPage({
+    super.key,
+    required this.onBound,
+    required this.apiBase,
+  });
 
   final Future<void> Function(StallBinding binding) onBound;
-  final String initialApiBase;
+  final String apiBase;
 
   @override
   State<StallBindPage> createState() => _StallBindPageState();
@@ -14,22 +18,19 @@ class StallBindPage extends StatefulWidget {
 
 class _StallBindPageState extends State<StallBindPage> {
   late final _stall = TextEditingController();
-  late final _api = TextEditingController(text: widget.initialApiBase);
 
   @override
   void dispose() {
     _stall.dispose();
-    _api.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name = _stall.text.trim();
-    final api = _api.text.trim();
-    if (name.isEmpty || api.isEmpty) {
+    if (name.isEmpty) {
       return;
     }
-    await widget.onBound(StallBinding(stallName: name, apiBase: api));
+    await widget.onBound(StallBinding(stallName: name, apiBase: widget.apiBase));
   }
 
   @override
@@ -41,30 +42,22 @@ class _StallBindPageState extends State<StallBindPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('这个手机绑哪个档口？', style: Theme.of(context).textTheme.headlineMedium),
+              Text('这个手机帮哪个档口开单？', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 12),
-              Text(
-                '一个老板对应一个档口。不是登录中台，不是客户管理。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF5C675E)),
+              const Text(
+                '写上档口名就能开始喊。一张单喊完再开下一张。',
+                style: TextStyle(fontSize: 18, color: Color(0xFF5C675E), height: 1.4),
               ),
               const SizedBox(height: 28),
               TextField(
                 controller: _stall,
                 autofocus: true,
                 style: Theme.of(context).textTheme.bodyLarge,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
                 decoration: const InputDecoration(
                   labelText: '档口',
                   hintText: '例如 3号档',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _api,
-                style: Theme.of(context).textTheme.bodyMedium,
-                decoration: const InputDecoration(
-                  labelText: '开单服务地址',
-                  hintText: 'http://127.0.0.1:8000',
                   border: OutlineInputBorder(),
                 ),
               ),

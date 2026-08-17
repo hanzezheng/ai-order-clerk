@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>同一 Wi-Fi 上的开单服务，用来把喊的单写下来。</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>按住说话开单需要用到麦克风。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

@@ -12,22 +12,20 @@ Flutter App → HTTP API → AI Employee Runtime（不改）→ ERPNext Adapter
 
 ## 跑起来
 
-后端另开：
+电脑上双击仓库根目录的 `启动开单.bat`。
 
-```bash
-python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-本机：
+手机：
 
 ```bash
 cd mobile
 flutter pub get
 flutter test
-flutter run --dart-define=API_BASE=http://127.0.0.1:8000
+flutter run
 ```
 
-Android 模拟器把 API 写成 `http://10.0.2.2:8000`。第一次打开先填档口名。按住说话走端侧 SenseVoice，不依赖系统听写。听不清可以把那一句打在「听不清就打这句」。
+不要填服务地址。App 会自己找电脑上的开单服务。Android 模拟器也能找到 `10.0.2.2`。真机和电脑连同一个 Wi-Fi。
+
+听不清可以把那一句打在「听不清就打这句」。
 
 打 APK 前先拉模型（约 229MB，不进 git）：
 

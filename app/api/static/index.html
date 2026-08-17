@@ -191,6 +191,7 @@
         <div class="date" id="bizDate"></div>
       </div>
       <div class="counts" id="counts">今天 <strong>0</strong> 张 · 待确认 <strong>0</strong> · 已确认 <strong>0</strong></div>
+      <div class="counts" id="pairHint">手机打开「今日开单」，会自动连上这台电脑。</div>
     </header>
 
     <div class="phase" id="phase">按住说话</div>
@@ -259,6 +260,14 @@
     if (new URLSearchParams(location.search).get("dev") === "1") {
       document.body.classList.add("dev-on");
     }
+
+    fetch("/v1/presence").then(function (res) { return res.json(); }).then(function (body) {
+      const hint = document.getElementById("pairHint");
+      const lan = (body.urls || []).find(function (url) { return url.indexOf("127.0.0.1") < 0; });
+      if (hint && lan) {
+        hint.textContent = "手机打开「今日开单」会自动连上。连不上时把这个地址填进手机：" + lan;
+      }
+    }).catch(function () {});
 
     const speech = document.getElementById("speech");
     let asrFinal = "";

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -30,10 +31,15 @@ abstract class ClerkApi {
 }
 
 class HttpClerkApi implements ClerkApi {
-  HttpClerkApi({required this.baseUrl, http.Client? client}) : _client = client ?? http.Client();
+  HttpClerkApi({
+    required this.baseUrl,
+    http.Client? client,
+    this.timeout = const Duration(seconds: 8),
+  }) : _client = client ?? http.Client();
 
   final String baseUrl;
   final http.Client _client;
+  final Duration timeout;
 
   Uri _uri(String path) {
     final root = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
@@ -50,13 +56,17 @@ class HttpClerkApi implements ClerkApi {
     final headers = {'Content-Type': 'application/json; charset=utf-8'};
     final encoded = body == null ? null : jsonEncode(body);
     late http.Response response;
-    switch (method) {
-      case 'GET':
-        response = await _client.get(uri, headers: headers);
-      case 'POST':
-        response = await _client.post(uri, headers: headers, body: encoded);
-      default:
-        throw ArgumentError(method);
+    try {
+      switch (method) {
+        case 'GET':
+          response = await _client.get(uri, headers: headers).timeout(timeout);
+        case 'POST':
+          response = await _client.post(uri, headers: headers, body: encoded).timeout(timeout);
+        default:
+          throw ArgumentError(method);
+      }
+    } on TimeoutException {
+      throw ClerkApiException(0, 'timeout');
     }
     if (response.statusCode != success) {
       throw ClerkApiException(response.statusCode, response.body);

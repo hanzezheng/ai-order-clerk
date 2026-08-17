@@ -143,3 +143,31 @@ class FakeClerkApi implements ClerkApi {
     return TurnResult(sessionId: sessionId, replyText: '李老板，苹果按档案红富士80果二十箱。', confirmOk: false, draft: draft);
   }
 }
+
+class DownClerkApi implements ClerkApi {
+  Never _down() => throw Exception('down');
+
+  @override
+  Future<WorkbenchSnapshot> getWorkbench() async => _down();
+
+  @override
+  Future<WorkbenchSnapshot> createTask() async => _down();
+
+  @override
+  Future<WorkbenchSnapshot> setCurrent(String sessionId) async => _down();
+
+  @override
+  Future<SessionSnapshot> getSession(String sessionId) async => _down();
+
+  @override
+  Future<TurnResult> postTurn({
+    required String sessionId,
+    required String text,
+    required int seq,
+    required String utteranceId,
+    String source = 'text',
+    bool expectMore = true,
+  }) async =>
+      _down();
+}
+

@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api/clerk_api.dart';
+import 'api/discovery.dart';
 import 'stall/stall_binding.dart';
 import 'state/order_book_controller.dart';
+import 'ui/launch_page.dart';
 import 'ui/order_book_page.dart';
-import 'ui/stall_bind_page.dart';
 import 'ui/theme.dart';
 import 'voice/device_speech.dart';
 import 'voice/speech_ports.dart';
@@ -46,6 +47,7 @@ class SalesClerkApp extends StatefulWidget {
     this.speech,
     this.tts,
     this.initialBinding,
+    this.finder,
   });
 
   final SharedPreferences prefs;
@@ -53,6 +55,7 @@ class SalesClerkApp extends StatefulWidget {
   final SpeechInput? speech;
   final SpeechOutput? tts;
   final StallBinding? initialBinding;
+  final LanClerkFinder? finder;
 
   @override
   State<SalesClerkApp> createState() => _SalesClerkAppState();
@@ -89,9 +92,20 @@ class _SalesClerkAppState extends State<SalesClerkApp> {
       debugShowCheckedModeBanner: false,
       theme: stallTheme,
       home: !_ready
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          ? const Scaffold(
+              body: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(24, 48, 24, 24),
+                  child: Text('今日开单', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
+                ),
+              ),
+            )
           : _binding == null
-              ? StallBindPage(initialApiBase: defaultApiBase, onBound: _bind)
+              ? LaunchPage(
+                  finder: widget.finder ??
+                      LanClerkFinder(seeds: clerkSeedBases(defaultApiBase: defaultApiBase)),
+                  onBound: _bind,
+                )
               : OrderBookPage(
                   controller: OrderBookController(
                     api: (widget.apiFactory ?? (base) => HttpClerkApi(baseUrl: base))(_binding!.apiBase),

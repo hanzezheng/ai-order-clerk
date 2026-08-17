@@ -95,6 +95,20 @@ void main() {
     expect(api.turns, isEmpty);
   });
 
+  test('服务不在时不假装开单', () async {
+    final controller = OrderBookController(
+      api: DownClerkApi(),
+      stall: const StallBinding(stallName: '3号档', apiBase: 'http://127.0.0.1:8000'),
+      speech: SilentSpeechInput(),
+      tts: SilentSpeechOutput(),
+    );
+    await controller.bootstrap();
+    expect(controller.offline, isTrue);
+    expect(controller.errorText, contains('开单服务还没打开'));
+    await controller.beginHold();
+    expect(controller.phase, BookPhase.idle);
+  });
+
   test('听不清可以打同一句提交', () async {
     final api = FakeClerkApi();
     final controller = OrderBookController(

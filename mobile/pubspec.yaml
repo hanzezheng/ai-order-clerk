@@ -27,5 +27,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/asr/tokens.txt
-    - assets/asr/model.int8.onnx
+    - assets/asr/

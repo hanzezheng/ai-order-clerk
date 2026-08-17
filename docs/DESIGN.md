@@ -23,7 +23,8 @@
 | [V05_ERPNEXT_ADAPTER.md](V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Write Adapter：边界、Outbox 映射、Customer/Item/SO、Runtime vs ERP 事实、防腐 |
 | [V06_ERPNEXT_READ_ADAPTER.md](V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter：只读边界、领域查询、Context 白名单、Policy 隔离 |
 | [RUNTIME_FREEZE.md](RUNTIME_FREEZE.md) | Phase 1.5 冻结清单：已冻结层、扩展点、Adapter 边界、新员工复用 |
-| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md) |
+| [SALES_EMPLOYEE_CAPABILITY.md](SALES_EMPLOYEE_CAPABILITY.md) | 第一个商业员工（开单员）能力定义：老板价值、日流程、三阶段路线 |
+| [ADR/](ADR/) | 架构决策；模板 [ADR_TEMPLATE.md](ADR/ADR_TEMPLATE.md)。Sprint 6A：[ADR-008](ADR/ADR-008-http-turns-not-chat.md)；Sprint 6B：[ADR-009](ADR/ADR-009-memory-from-confirm-events.md)；Sprint 7：[ADR-010](ADR/ADR-010-adaptive-memory.md)；Sprint 8A：[ADR-011](ADR/ADR-011-cold-start-customer.md)；Sprint 9A：[ADR-012](ADR/ADR-012-workbench-not-session.md)；Sprint 10A：[ADR-013](ADR/ADR-013-persistence-ports.md)；Sprint 10B：[ADR-014](ADR/ADR-014-postgres-persistence.md)；Sprint 11：[ADR-015](ADR/ADR-015-durable-outbox.md)；V0.3A：[ADR-016](ADR/ADR-016-llm-default-parser.md)；V0.3B：[ADR-017](ADR/ADR-017-product-understanding.md)；V0.3C：[ADR-018](ADR/ADR-018-language-capability-benchmark.md)；V0.3D：[ADR-019](ADR/ADR-019-real-model-evaluation.md)；V0.4：[ADR-020](ADR/ADR-020-voice-adapter-not-runtime.md)；全局架构：[ADR-021](ADR/ADR-021-ai-employee-runtime.md)；V0.5：[ADR-022](ADR/ADR-022-erpnext-adapter-not-runtime.md)；V0.6：[ADR-023](ADR/ADR-023-erpnext-read-adapter.md)；冻结评审：[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)；开单员岗位：[ADR-025](ADR/ADR-025-sales-employee-before-second.md) |
 | `/.cursorrules` | AI 辅助开发强制规则 |
 
 ---
@@ -1191,3 +1192,11 @@ Read Adapter 与 Write Adapter 同层、不同端口。Runtime 内核不查 ERP�
 目标：把 v0.x 收口为稳定基础。不是加功能。
 
 冻结清单：[RUNTIME_FREEZE.md](RUNTIME_FREEZE.md)。防火墙：`app/tests/test_architecture_firewall.py`。评审：[RUNTIME_FREEZE_REVIEW.md](RUNTIME_FREEZE_REVIEW.md)、[ADR-024](ADR/ADR-024-runtime-freeze-not-framework.md)。
+
+### 14.20 开单员产品能力（Runtime 收口之后）
+
+目标：第一个商业岗位是农批开单员。继续增强 Sales，不启动第二员工。
+
+细则 [SALES_EMPLOYEE_CAPABILITY.md](SALES_EMPLOYEE_CAPABILITY.md)、[ADR-025](ADR/ADR-025-sales-employee-before-second.md)。
+
+禁止：改 Policy 边界、ERP 驱动 AI、通用 Agent 框架、把催款/库存塞进 SalesSession。

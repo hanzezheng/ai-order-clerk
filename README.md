@@ -35,5 +35,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | [docs/V05_ERPNEXT_ADAPTER.md](docs/V05_ERPNEXT_ADAPTER.md) | V0.5 ERPNext Write Adapter（Outbox → ERP，不改内核） |
 | [docs/V06_ERPNEXT_READ_ADAPTER.md](docs/V06_ERPNEXT_READ_ADAPTER.md) | V0.6 ERPNext Read Adapter 设计（领域查询 → 投影，不改内核） |
 | [docs/RUNTIME_FREEZE.md](docs/RUNTIME_FREEZE.md) | v0.x Runtime 冻结清单（Phase 1.5 收口） |
+| [docs/SALES_EMPLOYEE_CAPABILITY.md](docs/SALES_EMPLOYEE_CAPABILITY.md) | 第一个商业员工（开单员）能力与三阶段路线 |
 | [docs/ADR/](docs/ADR/) | 架构决策记录 |
 | [.cursorrules](.cursorrules) | AI 辅助开发强制规则 |
